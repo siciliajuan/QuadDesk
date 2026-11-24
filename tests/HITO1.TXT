@@ -59,6 +59,9 @@ PRUEBA 3 - LISTA DE TAREAS Y ALT+TAB
   2. Abre la Lista de tareas (Ctrl+Esc) y elige una ventana del 1.
      - QuadDesk debe saltar al escritorio 1 y mostrarla.
   3. Repite usando Alt+Tab para llegar a una ventana de otro escritorio.
+  4. En el escritorio 1, abre dos ventanas y deja activa la segunda. Vete
+     al 2 y, con la Lista de tareas, elige la PRIMERA.
+     - Debe quedar activa la primera (la que elegiste), no la segunda.
 
 
 PRUEBA 4 - DIÁLOGOS

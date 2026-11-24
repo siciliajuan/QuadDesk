@@ -527,7 +527,12 @@ static void OnActivate(HWND h)
         return;
     r = FindRec(h);
     if (r && r->parked && r->desk != g_current)
+    {
+        /* The window the user chose gets the focus on arrival, not the
+           one that was active when they left that desktop (D-061). */
+        g_focus[r->desk] = h;
         SwitchTo(r->desk);
+    }
 }
 
 /* Every window back on screen: used on exit and on Windows shutdown. */

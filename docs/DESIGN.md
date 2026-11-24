@@ -159,7 +159,8 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 ## 6. Windows from other desktops
 
 - **Task List / Alt+Tab:** activating a window that lives on another desktop
-  switches to that desktop. [decided]
+  switches to that desktop, and that window gets the focus (not the one
+  that was active when the user left that desktop). [decided — D-061]
 - **Dialogs and message boxes** opened by an application on another desktop
   stay with their application (including `MessageBox`, which QuadDesk moves
   to the owner's desktop). That desktop's cell blinks in the pager and in the
