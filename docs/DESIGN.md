@@ -74,7 +74,11 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   desktop like any other window. [decided]
 - Minimized applications (icons) belong to their desktop and only appear
   there. [decided]
-- **Focus:** QuadDesk remembers which window had the focus on each desktop
+- **Focus:** if a dialog appeared on a desktop while the user was away, it
+  gets the focus (and comes to the front) when the user arrives there, so
+  it is the first thing they see; this takes precedence over the rule
+  below. [decided — D-060]
+- QuadDesk remembers which window had the focus on each desktop
   and gives it back when the user returns. If that window no longer exists
   (or the desktop was never visited), the topmost window of the desktop is
   activated; if there is none, Program Manager (open on that desktop or as

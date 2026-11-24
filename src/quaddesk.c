@@ -64,6 +64,7 @@ static WINREC    g_win[MAX_WINDOWS];
 static int       g_count   = 0;
 static int       g_current = 0;
 static HWND      g_focus[NUM_DESKS];   /* last active window of each desktop */
+static HWND      g_pending[NUM_DESKS]; /* dialog that appeared while away    */
 static int       g_pmHome  = -1;       /* desktop of open Program Manager    */
 static BOOL      g_pmByUs  = FALSE;    /* QuadDesk minimized Program Manager */
 static BOOL      g_pmExitRestored = FALSE;
@@ -374,6 +375,22 @@ static void ActivateTopWindow(void)
 {
     HWND h = g_focus[g_current];
     HWND pm = PmWindow();
+    HWND p = g_pending[g_current];
+
+    /* A dialog that appeared on this desktop while the user was away is
+       what the user must see first (D-060). Without this, a dialog with no
+       owner would stay behind the window that had the focus. */
+    g_pending[g_current] = NULL;
+    if (p && IsWindow(p) && IsWindowVisible(p))
+    {
+        WINREC *r = FindRec(p);
+        if (r && r->desk == g_current && !r->parked)
+        {
+            BringWindowToTop(p);
+            SetActiveWindow(p);
+            return;
+        }
+    }
 
     if (h && IsWindow(h) && IsWindowVisible(h))
     {
@@ -418,8 +435,13 @@ static void ParkStrays(void)
     for (i = 0; i < g_count; i++)
         if (g_win[i].desk != g_current && !g_win[i].parked)
         {
+            char cls[16];
+
             Park(&g_win[i]);
             parkedAny = TRUE;
+            GetClassName(g_win[i].hwnd, cls, sizeof(cls));
+            if (lstrcmp(cls, "#32770") == 0)
+                g_pending[g_win[i].desk] = g_win[i].hwnd;
         }
 
     /* Never leave the keyboard focus on a window that just went away. */

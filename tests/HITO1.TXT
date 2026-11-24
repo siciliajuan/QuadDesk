@@ -73,11 +73,13 @@ PRUEBA 4 - DIÁLOGOS
   3. Espera a que pasen los 5 segundos.
      - El aviso puede asomar un instante, pero en menos de medio
        segundo debe irse. Tú sigues en el escritorio 2.
-  4. Vuelve al escritorio 1: el aviso debe estar allí. Acéptalo.
+  4. Vuelve al escritorio 1: el aviso debe estar allí, delante de
+     VDTEST y activo (barra de título resaltada). Acéptalo.
 
   B) Aviso sin ventana propietaria
   1. Repite A, pero con el botón "Diálogo sin propietaria (NULL)".
-     - Lo esperado es lo mismo: el aviso se va al escritorio 1.
+     - Lo esperado es lo mismo: el aviso se va al escritorio 1 y, al
+       volver, está delante de VDTEST y activo.
 
   C) Terminar tarea desde la Lista de tareas
   1. En el escritorio 1, abre el Bloc de notas y escribe algo.

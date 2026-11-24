@@ -13,7 +13,8 @@
 - Activating a window of another desktop (Task List, Alt+Tab) jumps to its
   desktop.
 - Dialogs and message boxes stay on their application's desktop, also
-  message boxes created without an owner window.
+  message boxes created without an owner window, and get the focus when
+  you arrive at that desktop.
 - Works at any resolution: parking and recovery use the real screen width.
 - Program Manager is always at hand: when open it belongs to its desktop
   and is minimized on the others, where it appears as an icon; restoring
