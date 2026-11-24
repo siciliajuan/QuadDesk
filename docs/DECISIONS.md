@@ -47,3 +47,9 @@ the old one instead of editing it.
 | D-038 | 2026-11-24 | Version numbers with two parts: MAJOR.MINOR (e.g. v1.0). | Three-part tags (v0.1.0) discarded. Mapping to milestones still open. |
 | D-039 | 2026-11-24 | A dialog that has just been created on a hidden desktop does not trigger a desktop switch, even though Windows activates it; activating an existing window (Alt+Tab, Task List) does. | Consequence of D-020: otherwise QuadDesk would jump every time a background application shows a message. |
 | D-040 | 2026-11-24 | Milestones are pre-releases v0.1 to v0.5; v1.0 when everything is finished. | Releasing only v1.0 at the end was discarded. |
+| D-041 | 2026-11-24 | Parking distance and the off-screen test depend on the real screen width (`SM_CXSCREEN`); no fixed pixel threshold. | The fixed 1000 px threshold of the first milestone 1 build misread visible windows at 1024×768 and wider (D-034). |
+| D-042 | 2026-11-24 | Dialogs without owner (`#32770`) go to the desktop of the task that created them when that task has no window on the current desktop. Other ownerless windows still go to the current desktop. | Completes D-020: a `MessageBox(NULL, …)` from a background application appeared on the current desktop. |
+| D-043 | 2026-11-24 | One 100 ms timer for everything from milestone 2; the 500 ms timer of milestone 1 is temporary. | Confirms D-023. |
+| D-044 | 2026-11-24 | No operating-mode requirement; documentation says "tested in 386 enhanced mode". | The hooks work in standard mode too; requiring 386 enhanced mode was never decided. |
+| D-045 | 2026-11-24 | Keep "Designed for VGA (640×480); works at higher resolutions" in the README. No repository extras (badges, issue templates, CI) for now. | The sentence states clearly that higher resolutions work (D-034). |
+| D-046 | 2026-11-24 | Maximized windows parked off screen validated on the real 486 and in the emulator. | Confirms D-021. |

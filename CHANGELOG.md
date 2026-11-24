@@ -12,7 +12,9 @@
   you return.
 - Activating a window of another desktop (Task List, Alt+Tab) jumps to its
   desktop.
-- Dialogs and message boxes stay on their application's desktop.
+- Dialogs and message boxes stay on their application's desktop, also
+  message boxes created without an owner window.
+- Works at any resolution: parking and recovery use the real screen width.
 - Windows brought back by Cascade, Tile or Arrange Icons move to the current
   desktop.
 - All windows come back on screen when QuadDesk exits or Windows shuts down;

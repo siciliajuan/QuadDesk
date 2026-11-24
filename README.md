@@ -22,7 +22,7 @@ you to its desktop.
 
 ## Requirements
 
-- Windows 3.1 or Windows for Workgroups 3.11 in 386 enhanced mode
+- Windows 3.1 or Windows for Workgroups 3.11 (tested in 386 enhanced mode)
 - Designed for VGA (640×480); works at higher resolutions
 
 ## Building

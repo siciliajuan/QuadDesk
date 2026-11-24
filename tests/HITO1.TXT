@@ -12,7 +12,7 @@ minimizado cuyo título indica el escritorio actual, por ejemplo
 INSTALAR
 --------
   1. Crea C:\QUADDESK y copia QUADDESK.EXE y QDHOOK.DLL en él.
-  2. Arranca Windows (modo 386 mejorado).
+  2. Arranca Windows (normalmente "win"; da igual el modo).
   3. Ejecuta C:\QUADDESK\QUADDESK.EXE (Archivo > Ejecutar).
      Debe aparecer un icono "QuadDesk [1]" abajo, en el escritorio.
 
@@ -93,6 +93,17 @@ PRUEBA 6 - SALIR
      - Todas las ventanas deben volver a la pantalla, en su sitio.
   3. Vuelve a abrir QuadDesk, reparte ventanas y sal de Windows sin
      cerrar QuadDesk. Al volver a Windows no debe faltar nada.
+
+
+PRUEBA 7 - RESOLUCIÓN MAYOR (opcional, si tu tarjeta gráfica lo permite)
+---------------------------------------------------------------------
+  1. Pon Windows a 800x600 o 1024x768 (Windows Setup > Pantalla).
+  2. Coloca una ventana normal de modo que asome solo un poco por el
+     borde derecho de la pantalla.
+  3. Repite la prueba 1 y la prueba 6.
+     - La ventana que asoma debe comportarse como cualquier otra: se va
+       al cambiar de escritorio, vuelve a su sitio al regresar y no se
+       mueve al abrir QuadDesk.
 
 
 QUÉ ENVIARME

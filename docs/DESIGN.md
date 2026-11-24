@@ -16,8 +16,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - **Name:** QuadDesk (shown on screen exactly like that). File names use
   `QUADDESK`. Renamed from "VDESK" because an open-source *VDesk* for
   Windows 10 already exists. [decided]
-- **Platform:** Windows 3.1 and Windows for Workgroups 3.11, 386 enhanced
-  mode. [decided]
+- **Platform:** Windows 3.1 and Windows for Workgroups 3.11. No specific
+  operating mode is required (the hooks also work in standard mode); tested
+  in 386 enhanced mode. [decided]
 - **Screen:** designed around 640×480 (VGA) and must work well at higher
   resolutions. Never describe it as "only for 640×480". [decided]
 - **License:** MIT. [decided]
@@ -35,10 +36,15 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   ```
 
 - **Hiding technique:** windows of hidden desktops are moved off screen with
-  `SetWindowPos(... SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)`, 2000 px to
-  the right; they are never hidden with `SW_HIDE`. Their state does not
+  `SetWindowPos(... SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)` to the
+  right; they are never hidden with `SW_HIDE`. Their state does not
   change: maximized windows stay maximized, minimized ones stay icons.
-  [validated: maximized windows]
+  [validated: maximized windows, on the 486 and in the emulator]
+- **Any resolution:** the parking distance is twice the screen width
+  (`SM_CXSCREEN`), at least 2000 px. A window counts as off screen when its
+  left edge is beyond the right edge of the screen; any window that can be
+  seen, even one that only peeks in from the right, is on screen. No fixed
+  pixel threshold is used. [decided]
 - Windows that stay visible on every desktop (never moved): QuadDesk itself
   (the pager follows the user from desktop to desktop when open), Program
   Manager and system-modal windows. [decided]
@@ -98,7 +104,8 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   [decided]
 - **Refresh:** WH_CBT events (create, destroy, minimize, maximize) plus a
   100 ms timer for moves and resizes that only repaints when something
-  changed. [decided]
+  changed. This single 100 ms timer also checks for new dialogs (milestone 1
+  uses a temporary 500 ms timer). [decided]
 
 ## 5. Moving windows between desktops
 
@@ -137,8 +144,13 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   of the previous rule (D-020). [decided — implemented in milestone 1]
 - **System-modal** message boxes and system errors (GPF, drive not ready…)
   always appear on the current desktop. [decided]
-- **New windows without owner** go to the current desktop. A window created
-  hidden is assigned when it is shown. [decided]
+- **Dialogs without owner** (class `#32770`, for example a `MessageBox`
+  called with no owner window) belong to the application (task) that
+  created them: if that application has no window on the current desktop
+  but has windows on another one, the dialog goes there. [decided]
+- **Other new windows without owner** go to the current desktop (for
+  example a second main window). A window created hidden is assigned when
+  it is shown. [decided]
 - **Cascade, Tile and Arrange Icons** (Task List) bring every window on
   screen: QuadDesk moves those windows to the current desktop. This doubles
   as an emergency recovery and is documented in the help and the README.
@@ -188,8 +200,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - On exit and on `WM_ENDSESSION` every window comes back on screen. There is
   no manual "Gather all windows" command (too easy to trigger by mistake).
   [decided]
-- At start-up, windows left off screen by a previous crash are brought back.
-  [decided]
+- At start-up, windows left off screen by a previous crash are brought back
+  by the same parking distance; if that would still leave them out of
+  sight, they go to the left edge of the screen. [decided]
 
 ## 10. Languages
 
@@ -260,7 +273,7 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 
 | Milestone | Status |
 |---|---|
-| 1 — Core (v0.1) | Delivered, waiting for tests on the 486. Temporary UI: an icon titled `QuadDesk [N]`; messages in English only. |
+| 1 — Core (v0.1) | Delivered (with resolution and ownerless-dialog fixes), waiting for tests on the 486. Temporary UI: an icon titled `QuadDesk [N]`; messages in English only. |
 | 2 — Pager (v0.2) | Not started |
 | 3 — Moving windows (v0.3) | Not started (technique validated with VDTEST) |
 | 4 — Preferences, CPL, languages (v0.4) | Not started |

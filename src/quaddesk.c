@@ -15,12 +15,15 @@
  *     that desktop.
  *   - Dialogs and other owned windows always stay on their owner's desktop,
  *     also when an application on a hidden desktop opens one (checked
- *     every 500 ms).
+ *     every 500 ms). A message box created without an owner goes to the
+ *     desktop of the application (task) that created it.
  *   - Windows brought back on screen by Cascade, Tile or Arrange Icons are
  *     moved to the current desktop.
  *   - When QuadDesk exits (or Windows shuts down) every window is brought
  *     back on screen. At start-up, windows left off screen by a previous
  *     crash are recovered.
+ *   - Works at any resolution: how far windows are parked and what counts
+ *     as "off screen" depend on the real width of the screen.
  *
  * The pager, preferences and the rest of the user interface arrive in later
  * milestones. In this one QuadDesk runs as a minimized icon whose title
@@ -40,8 +43,7 @@
 #define NUM_DESKS    4
 #define GRID_COLS    2
 #define MAX_WINDOWS  128
-#define OFFSET_X     2000      /* how far off screen hidden windows go */
-#define OFF_LIMIT    1000      /* left edge beyond this = parked by QuadDesk */
+#define MIN_OFFSET   2000      /* minimum distance hidden windows are moved */
 #define SYNC_TIMER   1
 #define SYNC_MS      500       /* how often new dialogs are checked        */
 
@@ -59,6 +61,28 @@ static WINREC    g_win[MAX_WINDOWS];
 static int       g_count   = 0;
 static int       g_current = 0;
 static HWND      g_focus[NUM_DESKS];   /* last active window of each desktop */
+static int       g_cxScreen;           /* screen width in pixels             */
+static int       g_offset;             /* how far hidden windows are moved   */
+
+/* The parking distance depends on the resolution: twice the screen width
+   (at least MIN_OFFSET), so a parked window is always completely to the
+   right of the screen, whatever the resolution. */
+static void InitScreen(void)
+{
+    g_cxScreen = GetSystemMetrics(SM_CXSCREEN);
+    g_offset   = 2 * g_cxScreen;
+    if (g_offset < MIN_OFFSET)
+        g_offset = MIN_OFFSET;
+}
+
+/* A window is off screen when its left edge is beyond the right edge of
+   the screen. This is true for every window QuadDesk parks and false for
+   any window that can be seen, even one that only peeks in from the
+   right. */
+static BOOL IsOffScreen(const RECT *rc)
+{
+    return rc->left >= g_cxScreen;
+}
 
 /* ------------------------------------------------------------------ */
 /* Window bookkeeping                                                  */
@@ -115,11 +139,43 @@ static WINREC *AddRec(HWND h, int desk)
     return r;
 }
 
+/* Desktop for a window QuadDesk has just found.
+   - Owned windows are placed later by Sync(), with their owner.
+   - A dialog without owner (for example a MessageBox called with
+     hwnd = NULL) belongs to the application that created it: if that
+     application (task) has no window on the current desktop but has
+     windows on another one, the dialog goes there.
+   - Any other new window goes to the current desktop. */
+static int DeskForNewWindow(HWND h)
+{
+    char cls[16];
+    HTASK task;
+    int i, other = -1;
+
+    if (GetWindow(h, GW_OWNER) != NULL)
+        return g_current;
+    GetClassName(h, cls, sizeof(cls));
+    if (lstrcmp(cls, "#32770") != 0)
+        return g_current;
+
+    task = GetWindowTask(h);
+    for (i = 0; i < g_count; i++)
+    {
+        if (GetWindowTask(g_win[i].hwnd) != task)
+            continue;
+        if (g_win[i].desk == g_current)
+            return g_current;
+        if (other < 0)
+            other = g_win[i].desk;
+    }
+    return other >= 0 ? other : g_current;
+}
+
 BOOL CALLBACK _export AddNewProc(HWND h, LPARAM lParam)
 {
     (void)lParam;
     if (IsManaged(h) && FindRec(h) == NULL)
-        AddRec(h, g_current);
+        AddRec(h, DeskForNewWindow(h));
     return TRUE;
 }
 
@@ -150,7 +206,7 @@ static void Sync(void)
         if (r->parked)
         {
             GetWindowRect(r->hwnd, &rc);
-            if (rc.left < OFF_LIMIT)          /* back on screen */
+            if (!IsOffScreen(&rc))            /* back on screen */
             {
                 r->parked = FALSE;
                 r->desk   = g_current;
@@ -179,7 +235,7 @@ static void Park(WINREC *r)
     GetWindowRect(r->hwnd, &rc);
     r->x = rc.left;
     r->y = rc.top;
-    SetWindowPos(r->hwnd, NULL, rc.left + OFFSET_X, rc.top, 0, 0,
+    SetWindowPos(r->hwnd, NULL, rc.left + g_offset, rc.top, 0, 0,
                  SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
     r->parked = TRUE;
 }
@@ -337,18 +393,26 @@ static void UnparkAll(void)
 }
 
 /* Start-up: windows left off screen by a previous QuadDesk that did not
-   exit cleanly are brought back. */
+   exit cleanly are brought back. The screen width cannot change without
+   restarting Windows, so they are moved back by the same distance. If the
+   result would still be out of sight, the window goes to the left edge. */
 BOOL CALLBACK _export RecoverProc(HWND h, LPARAM lParam)
 {
     RECT rc;
+    int x;
 
     (void)lParam;
     if (IsManaged(h))
     {
         GetWindowRect(h, &rc);
-        if (rc.left >= OFF_LIMIT)
-            SetWindowPos(h, NULL, rc.left - OFFSET_X, rc.top, 0, 0,
+        if (IsOffScreen(&rc))
+        {
+            x = rc.left - g_offset;
+            if (x >= g_cxScreen || x + (rc.right - rc.left) <= 0)
+                x = 0;
+            SetWindowPos(h, NULL, x, rc.top, 0, 0,
                          SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+        }
     }
     return TRUE;
 }
@@ -369,6 +433,7 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
     {
     case WM_CREATE:
         g_hwndMain = hwnd;
+        InitScreen();
         RecoverParkedWindows();
         if (!QDInstall(hwnd))
         {
