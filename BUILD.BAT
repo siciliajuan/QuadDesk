@@ -18,7 +18,9 @@ if errorlevel 1 goto error
 echo Building QUADDESK.EXE
 wcc -q -bt=windows -ml -zw -ox -w4 -i=..\SRC -fo=quaddesk.obj ..\SRC\QUADDESK.C
 if errorlevel 1 goto error
-wlink op q system windows file quaddesk.obj library qdhook.lib name quaddesk.exe option stack=8k option heapsize=4k
+wcc -q -bt=windows -ml -zw -ox -w4 -i=..\SRC -fo=pager.obj ..\SRC\PAGER.C
+if errorlevel 1 goto error
+wlink op q system windows file quaddesk.obj file pager.obj library qdhook.lib name quaddesk.exe option stack=8k option heapsize=4k
 if errorlevel 1 goto error
 
 cd ..

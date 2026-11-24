@@ -1,0 +1,643 @@
+/*
+ * pager.c - QuadDesk pager window and live icon, milestone 2
+ *
+ * The pager is QuadDesk's main window. It has a fixed size, designed for
+ * 640x480 and the same at any resolution:
+ *
+ *   +---------------------------+
+ *   | Options  Help             |   menu bar
+ *   | [Desktop 1] [Desktop 2]   |   2x2 grid of 80x60 cells; each cell is
+ *   | [Desktop 3] [Desktop 4]   |   the whole screen to scale
+ *   | Windows on desktop N (X): |
+ *   | [ list, 5 rows          ] |   windows of the active desktop, or of
+ *   |                           |   the cell under the mouse
+ *   | [Ctrl+Alt+Shift+Arrows  ] |   status bar
+ *   +---------------------------+
+ *
+ * When minimized it draws a live icon: the same 2x2 grid in 32x32 with the
+ * active desktop in navy. A desktop with a pending dialog blinks (inverted
+ * colours, every 500 ms) in the icon and in the pager.
+ *
+ * Everything is repainted only when something visible changed, to spare
+ * the 486.
+ *
+ * Copyright (c) 2026 Juan Sicilia
+ * Released under the MIT License. See LICENSE.
+ */
+
+#include <windows.h>
+#include <string.h>
+#include "qdcore.h"
+
+/* ---- Layout (client coordinates, pixels) -------------------------- */
+
+#define MARGIN      10
+#define GAP         8
+#define CELL_W      80          /* thumbnail: the screen to scale */
+#define CELL_H      60
+#define LABEL_H     15          /* "Desktop N" strip, line included */
+#define CELL_OW     (CELL_W + 4)            /* outer size, frame included */
+#define CELL_OH     (LABEL_H + CELL_H + 4)
+#define CLIENT_W    (MARGIN + CELL_OW + GAP + CELL_OW + MARGIN)
+#define GRID_BOTTOM (MARGIN + CELL_OH + GAP + CELL_OH)
+#define HEADER_Y    (GRID_BOTTOM + 2)
+#define HEADER_H    14
+#define ITEM_H      18
+#define LIST_ROWS   5
+#define LIST_Y      (HEADER_Y + HEADER_H + 3)
+#define LIST_H      (LIST_ROWS * ITEM_H + 2)
+#define STATUS_Y    (LIST_Y + LIST_H + 8)
+#define STATUS_H    18
+#define CLIENT_H    (STATUS_Y + STATUS_H + 8)
+
+#define ID_LIST     200
+
+/* Menu commands. System menu commands must stay below 0xF000. */
+#define IDM_PREFS       100
+#define IDM_CONTENTS    101
+#define IDM_SEARCH      102
+#define IDM_HOWTO       103
+#define IDM_ABOUT       104
+
+#define MAX_LIST        128
+#define BLINK_TICKS     5       /* 5 x 100 ms = 500 ms */
+
+#define NAVY        RGB(0, 0, 128)
+#define CYAN        RGB(0, 255, 255)
+#define GREY        RGB(192, 192, 192)
+#define DARKGREY    RGB(128, 128, 128)
+
+static HWND    g_hwndList;
+static HFONT   g_fontBold, g_fontNormal;
+static HDC     g_memDC;                 /* for drawing 16x16 icons */
+static HBITMAP g_memBmp, g_memOld;
+static int     g_hover   = -1;          /* cell under the mouse, or -1 */
+static int     g_listDesk = -1;         /* desktop shown in the list    */
+static HWND    g_listWnd[MAX_LIST];
+static int     g_listCount = 0;
+static DWORD   g_signature = 0;         /* of everything that is drawn  */
+static BOOL    g_blinkOn = FALSE;
+static int     g_blinkTicks = 0;
+
+/* ------------------------------------------------------------------ */
+/* Helpers                                                             */
+
+void PagerOuterSize(int *w, int *h)
+{
+    RECT rc;
+    SetRect(&rc, 0, 0, CLIENT_W, CLIENT_H);
+    AdjustWindowRect(&rc, PAGER_STYLE, TRUE);
+    *w = rc.right - rc.left;
+    *h = rc.bottom - rc.top;
+}
+
+static void CellRect(int desk, RECT *rc)
+{
+    int col = desk % GRID_COLS, row = desk / GRID_COLS;
+    rc->left   = MARGIN + col * (CELL_OW + GAP);
+    rc->top    = MARGIN + row * (CELL_OH + GAP);
+    rc->right  = rc->left + CELL_OW;
+    rc->bottom = rc->top + CELL_OH;
+}
+
+static void ThumbRect(int desk, RECT *rc)
+{
+    CellRect(desk, rc);
+    rc->left  += 2;
+    rc->top   += 2 + LABEL_H;
+    rc->right  = rc->left + CELL_W;
+    rc->bottom = rc->top + CELL_H;
+}
+
+static int CellAt(int x, int y)
+{
+    int i;
+    POINT pt;
+    RECT rc;
+
+    pt.x = x; pt.y = y;
+    for (i = 0; i < NUM_DESKS; i++)
+    {
+        CellRect(i, &rc);
+        if (PtInRect(&rc, pt))
+            return i;
+    }
+    return -1;
+}
+
+static void FillSolid(HDC hdc, int l, int t, int r, int b, COLORREF c)
+{
+    RECT rc;
+    HBRUSH br = CreateSolidBrush(c);
+    SetRect(&rc, l, t, r, b);
+    FillRect(hdc, &rc, br);
+    DeleteObject(br);
+}
+
+static void Frame(HDC hdc, int l, int t, int r, int b, COLORREF c)
+{
+    FillSolid(hdc, l, t, r, t + 1, c);
+    FillSolid(hdc, l, b - 1, r, b, c);
+    FillSolid(hdc, l, t, l + 1, b, c);
+    FillSolid(hdc, r - 1, t, r, b, c);
+}
+
+/* The application icon of a window; dialogs use their owner's icon. */
+static HICON WindowIcon(HWND h)
+{
+    HICON hi;
+    HWND owner;
+
+    while ((owner = GetWindow(h, GW_OWNER)) != NULL)
+        h = owner;
+    hi = (HICON)GetClassWord(h, GCW_HICON);
+    return hi ? hi : LoadIcon(NULL, IDI_APPLICATION);
+}
+
+/* Windows 3.1 only draws icons at 32x32: draw it on a 32x32 bitmap with
+   the given background and shrink it to 16x16. */
+static void DrawIcon16(HDC hdc, int x, int y, HICON hi, COLORREF bg)
+{
+    FillSolid(g_memDC, 0, 0, 32, 32, bg);
+    DrawIcon(g_memDC, 0, 0, hi);
+    SetStretchBltMode(hdc, COLORONCOLOR);
+    StretchBlt(hdc, x, y, 16, 16, g_memDC, 0, 0, 32, 32, SRCCOPY);
+}
+
+static DWORD Mix(DWORD sig, DWORD v)
+{
+    return (sig << 5) + (sig >> 27) + v * 2654435761UL;
+}
+
+static DWORD TextSum(HWND h)
+{
+    char buf[80];
+    DWORD s = 0;
+    int i, n = GetWindowText(h, buf, sizeof(buf));
+    for (i = 0; i < n; i++)
+        s = s * 31 + (BYTE)buf[i];
+    return s;
+}
+
+/* ------------------------------------------------------------------ */
+/* Window list                                                         */
+
+static int ListDesk(void)
+{
+    return g_hover >= 0 ? g_hover : g_current;
+}
+
+/* Fills the list box again if its windows changed; otherwise only
+   repaints it (a title may have changed). */
+static void UpdateList(void)
+{
+    HWND wins[MAX_LIST];
+    int desk = ListDesk();
+    int i, n = CoreWindows(desk, wins, MAX_LIST, TRUE);
+
+    if (desk == g_listDesk && n == g_listCount &&
+        memcmp(wins, g_listWnd, n * sizeof(HWND)) == 0)
+    {
+        InvalidateRect(g_hwndList, NULL, FALSE);
+        return;
+    }
+
+    SendMessage(g_hwndList, WM_SETREDRAW, FALSE, 0L);
+    SendMessage(g_hwndList, LB_RESETCONTENT, 0, 0L);
+    for (i = 0; i < n; i++)
+        SendMessage(g_hwndList, LB_ADDSTRING, 0, (LPARAM)(DWORD)(WORD)wins[i]);
+    SendMessage(g_hwndList, WM_SETREDRAW, TRUE, 0L);
+    InvalidateRect(g_hwndList, NULL, TRUE);
+
+    memcpy(g_listWnd, wins, n * sizeof(HWND));
+    g_listCount = n;
+    g_listDesk  = desk;
+}
+
+void PagerMeasureItem(MEASUREITEMSTRUCT FAR *mis)
+{
+    mis->itemHeight = ITEM_H;
+}
+
+void PagerDrawItem(DRAWITEMSTRUCT FAR *dis)
+{
+    HWND h;
+    char title[80];
+    RECT rc;
+    HFONT old;
+
+    if (dis->CtlID != ID_LIST || dis->itemID == (UINT)-1)
+        return;
+    rc = dis->rcItem;
+    FillRect(dis->hDC, &rc, (HBRUSH)GetStockObject(WHITE_BRUSH));
+
+    h = (HWND)LOWORD(dis->itemData);
+    if (!IsWindow(h))
+        return;
+    DrawIcon16(dis->hDC, rc.left + 4, rc.top + 1, WindowIcon(h), RGB(255, 255, 255));
+
+    title[0] = 0;
+    GetWindowText(h, title, sizeof(title));
+    old = SelectObject(dis->hDC, g_fontNormal);
+    SetBkMode(dis->hDC, TRANSPARENT);
+    SetTextColor(dis->hDC, RGB(0, 0, 0));
+    rc.left += 26;
+    DrawText(dis->hDC, title, -1, &rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    SelectObject(dis->hDC, old);
+}
+
+/* ------------------------------------------------------------------ */
+/* Change detection                                                    */
+
+/* A signature of everything the pager or the live icon shows. When it
+   does not change, nothing is repainted. */
+static DWORD ComputeSignature(void)
+{
+    HWND wins[MAX_LIST];
+    DWORD sig = 0;
+    RECT rc;
+    int d, i, n;
+
+    sig = Mix(sig, (DWORD)g_current);
+    sig = Mix(sig, (DWORD)(g_hover + 1));
+    sig = Mix(sig, (DWORD)IsIconic(g_hwndMain));
+    for (d = 0; d < NUM_DESKS; d++)
+    {
+        BOOL pend = CorePending(d);
+        sig = Mix(sig, (DWORD)pend);
+        if (pend)
+            sig = Mix(sig, (DWORD)g_blinkOn);
+
+        n = CoreWindows(d, wins, MAX_LIST, FALSE);
+        for (i = 0; i < n; i++)
+        {
+            CoreWindowRect(wins[i], &rc);
+            sig = Mix(sig, (DWORD)(WORD)wins[i]);
+            sig = Mix(sig, ((DWORD)(WORD)rc.left << 16) | (WORD)rc.top);
+            sig = Mix(sig, ((DWORD)(WORD)rc.right << 16) | (WORD)rc.bottom);
+        }
+        sig = Mix(sig, 0xFFFFUL);
+    }
+
+    n = CoreWindows(ListDesk(), wins, MAX_LIST, TRUE);
+    for (i = 0; i < n; i++)
+    {
+        sig = Mix(sig, (DWORD)(WORD)wins[i]);
+        sig = Mix(sig, TextSum(wins[i]));
+    }
+    return sig;
+}
+
+void PagerRefresh(void)
+{
+    DWORD sig;
+    RECT rc;
+
+    if (g_hwndMain == NULL)
+        return;
+    sig = ComputeSignature();
+    if (sig == g_signature)
+        return;
+    g_signature = sig;
+
+    if (IsIconic(g_hwndMain))
+    {
+        InvalidateRect(g_hwndMain, NULL, TRUE);
+        return;
+    }
+    SetRect(&rc, 0, 0, CLIENT_W, LIST_Y);
+    InvalidateRect(g_hwndMain, &rc, FALSE);
+    UpdateList();
+}
+
+void PagerTick(void)
+{
+    int d;
+    BOOL any = FALSE;
+
+    /* Leaving a cell: there is no "mouse leave" message in Windows 3.1. */
+    if (g_hover >= 0)
+    {
+        POINT pt;
+        GetCursorPos(&pt);
+        if (WindowFromPoint(pt) != g_hwndMain)
+            g_hover = -1;
+        else
+        {
+            ScreenToClient(g_hwndMain, &pt);
+            g_hover = CellAt(pt.x, pt.y);
+        }
+    }
+
+    for (d = 0; d < NUM_DESKS; d++)
+        if (CorePending(d))
+            any = TRUE;
+    if (any)
+    {
+        if (++g_blinkTicks >= BLINK_TICKS)
+        {
+            g_blinkTicks = 0;
+            g_blinkOn = !g_blinkOn;
+        }
+    }
+    else
+    {
+        g_blinkOn = FALSE;
+        g_blinkTicks = 0;
+    }
+
+    PagerRefresh();
+}
+
+/* ------------------------------------------------------------------ */
+/* Painting                                                            */
+
+static void PaintThumbnails(HDC hdc, int desk, const RECT *tr)
+{
+    HWND wins[MAX_LIST];
+    int cx = GetSystemMetrics(SM_CXSCREEN);
+    int cy = GetSystemMetrics(SM_CYSCREEN);
+    int i, n = CoreWindows(desk, wins, MAX_LIST, FALSE);
+    HRGN rgn;
+
+    rgn = CreateRectRgn(tr->left, tr->top, tr->right, tr->bottom);
+    SelectClipRgn(hdc, rgn);
+
+    /* Bottom window first, so the topmost one ends up on top. */
+    for (i = n - 1; i >= 0; i--)
+    {
+        RECT rc;
+        int l, t, w, h, size;
+
+        CoreWindowRect(wins[i], &rc);
+        l = tr->left + (int)((long)rc.left * CELL_W / cx);
+        t = tr->top  + (int)((long)rc.top  * CELL_H / cy);
+        w = (int)((long)(rc.right - rc.left) * CELL_W / cx);
+        h = (int)((long)(rc.bottom - rc.top) * CELL_H / cy);
+        if (w < 3) w = 3;
+        if (h < 3) h = 3;
+
+        FillSolid(hdc, l, t, l + w, t + h, RGB(255, 255, 255));
+        Frame(hdc, l, t, l + w, t + h, RGB(0, 0, 0));
+        FillSolid(hdc, l + 1, t + 1, l + w - 1, t + 4, DARKGREY);  /* title bar */
+
+        size = (w >= 34 && h >= 35) ? 32 : ((w >= 18 && h >= 19) ? 16 : 0);
+        if (size == 32)
+            DrawIcon(hdc, l + (w - 32) / 2, t + 1 + (h - 32) / 2, WindowIcon(wins[i]));
+        else if (size == 16)
+            DrawIcon16(hdc, l + (w - 16) / 2, t + 1 + (h - 16) / 2,
+                       WindowIcon(wins[i]), RGB(255, 255, 255));
+    }
+
+    SelectClipRgn(hdc, NULL);
+    DeleteObject(rgn);
+}
+
+static void PaintCell(HDC hdc, int desk)
+{
+    RECT rc, tr, lr;
+    char text[24];
+    BOOL active = (desk == g_current);
+    HFONT old;
+
+    CellRect(desk, &rc);
+    FillSolid(hdc, rc.left, rc.top, rc.right, rc.bottom, GREY);
+
+    if (active)
+        Frame(hdc, rc.left, rc.top, rc.right, rc.bottom, NAVY),
+        Frame(hdc, rc.left + 1, rc.top + 1, rc.right - 1, rc.bottom - 1, NAVY);
+    else
+    {
+        FillSolid(hdc, rc.left + 2, rc.bottom - 1, rc.right, rc.bottom, DARKGREY);
+        FillSolid(hdc, rc.right - 1, rc.top + 2, rc.right, rc.bottom, DARKGREY);
+        Frame(hdc, rc.left + 1, rc.top + 1, rc.right - 1, rc.bottom - 1, RGB(0, 0, 0));
+    }
+
+    /* Label strip */
+    SetRect(&lr, rc.left + 2, rc.top + 2, rc.left + 2 + CELL_W, rc.top + 2 + LABEL_H);
+    FillSolid(hdc, lr.left, lr.top, lr.right, lr.bottom - 1, active ? NAVY : GREY);
+    FillSolid(hdc, lr.left, lr.bottom - 1, lr.right, lr.bottom, RGB(0, 0, 0));
+    wsprintf(text, "Desktop %d", desk + 1);
+    old = SelectObject(hdc, g_fontBold);
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, active ? RGB(255, 255, 255) : RGB(0, 0, 0));
+    lr.left += 4;
+    lr.bottom -= 1;
+    DrawText(hdc, text, -1, &lr, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    SelectObject(hdc, old);
+
+    /* Thumbnail: the desktop to scale */
+    ThumbRect(desk, &tr);
+    FillSolid(hdc, tr.left, tr.top, tr.right, tr.bottom, GetSysColor(COLOR_BACKGROUND));
+    PaintThumbnails(hdc, desk, &tr);
+
+    if (g_blinkOn && CorePending(desk))
+        InvertRect(hdc, &tr);
+}
+
+static void PaintLiveIcon(HDC hdc)
+{
+    int i;
+
+    /* 32x32: 2 px black border, grey inside, four 11x11 cells. */
+    FillSolid(hdc, 0, 0, 32, 32, RGB(0, 0, 0));
+    FillSolid(hdc, 2, 2, 30, 30, GREY);
+    for (i = 0; i < NUM_DESKS; i++)
+    {
+        int l = 4 + (i % GRID_COLS) * 13;
+        int t = 4 + (i / GRID_COLS) * 13;
+        BOOL active = (i == g_current);
+        RECT rc;
+
+        FillSolid(hdc, l, t, l + 11, t + 11, RGB(0, 0, 0));
+        FillSolid(hdc, l + 1, t + 1, l + 10, t + 10, active ? NAVY : RGB(255, 255, 255));
+        FillSolid(hdc, l + 1, t + 1, l + 10, t + 3, active ? CYAN : DARKGREY);
+        if (g_blinkOn && CorePending(i))
+        {
+            SetRect(&rc, l, t, l + 11, t + 11);
+            InvertRect(hdc, &rc);
+        }
+    }
+}
+
+void PagerPaint(HWND hwnd)
+{
+    PAINTSTRUCT ps;
+    HDC hdc = BeginPaint(hwnd, &ps);
+    char text[48];
+    RECT rc;
+    HFONT old;
+    int i;
+
+    if (IsIconic(hwnd))
+    {
+        PaintLiveIcon(hdc);
+        EndPaint(hwnd, &ps);
+        return;
+    }
+
+    /* Grid area background (painted here because the grid is invalidated
+       without erasing, to avoid flicker). */
+    FillSolid(hdc, 0, 0, CLIENT_W, LIST_Y, GREY);
+    for (i = 0; i < NUM_DESKS; i++)
+        PaintCell(hdc, i);
+
+    /* List header */
+    wsprintf(text, "Windows on desktop %d (%d):", ListDesk() + 1, g_listCount);
+    old = SelectObject(hdc, g_fontBold);
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, RGB(0, 0, 0));
+    SetRect(&rc, MARGIN, HEADER_Y, CLIENT_W - MARGIN, HEADER_Y + HEADER_H);
+    DrawText(hdc, text, -1, &rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+
+    /* Status bar: a sunken panel with the shortcut hint */
+    SetRect(&rc, MARGIN, STATUS_Y, CLIENT_W - MARGIN, STATUS_Y + STATUS_H);
+    FillSolid(hdc, rc.left, rc.top, rc.right, rc.bottom, GREY);
+    FillSolid(hdc, rc.left, rc.top, rc.right, rc.top + 1, DARKGREY);
+    FillSolid(hdc, rc.left, rc.top, rc.left + 1, rc.bottom, DARKGREY);
+    FillSolid(hdc, rc.left, rc.bottom - 1, rc.right, rc.bottom, RGB(255, 255, 255));
+    FillSolid(hdc, rc.right - 1, rc.top, rc.right, rc.bottom, RGB(255, 255, 255));
+    SelectObject(hdc, g_fontNormal);
+    rc.left += 6;
+    DrawText(hdc, "Ctrl+Alt+Shift+Arrows", -1, &rc,
+             DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+
+    SelectObject(hdc, old);
+    EndPaint(hwnd, &ps);
+}
+
+/* ------------------------------------------------------------------ */
+/* Input                                                               */
+
+void PagerMouseMove(int x, int y)
+{
+    int cell = CellAt(x, y);
+    if (cell != g_hover)
+    {
+        g_hover = cell;
+        PagerRefresh();
+    }
+}
+
+void PagerClick(int x, int y)
+{
+    int cell = CellAt(x, y);
+    if (cell >= 0)
+        SwitchTo(cell);
+}
+
+/* Smart toggle (DESIGN.md section 3):
+   minimized -> restored and brought to the front;
+   open but not active -> brought to the front;
+   open and active -> minimized. */
+void PagerToggle(void)
+{
+    if (IsIconic(g_hwndMain))
+        ShowWindow(g_hwndMain, SW_RESTORE);
+    else if (GetActiveWindow() != g_hwndMain)
+    {
+        BringWindowToTop(g_hwndMain);
+        SetActiveWindow(g_hwndMain);
+    }
+    else
+    {
+        /* Minimize without letting Windows activate a window that may be
+           parked on another desktop; QuadDesk picks the window instead. */
+        ShowWindow(g_hwndMain, SW_SHOWMINNOACTIVE);
+        ActivateTopWindow();
+    }
+}
+
+static void About(void)
+{
+    MessageBox(g_hwndMain,
+               APP_NAME " " APP_VERSION "\n\n"
+               "Virtual desktops for Windows 3.1\n\n"
+               "Copyright \xA9 2026 Juan Sicilia\n"
+               "Released under the MIT License.",
+               "About " APP_NAME, MB_OK | MB_ICONINFORMATION);
+}
+
+BOOL PagerCommand(WPARAM id)
+{
+    switch (id)
+    {
+    case IDM_ABOUT:
+        About();
+        return TRUE;
+    case IDM_PREFS:             /* milestone 4 */
+    case IDM_CONTENTS:          /* milestone 5 */
+    case IDM_SEARCH:
+    case IDM_HOWTO:
+        return TRUE;
+    }
+    return FALSE;
+}
+
+/* ------------------------------------------------------------------ */
+/* Creation                                                            */
+
+static HMENU BuildMenu(void)
+{
+    HMENU bar  = CreateMenu();
+    HMENU opts = CreatePopupMenu();
+    HMENU help = CreatePopupMenu();
+
+    AppendMenu(opts, MF_STRING | MF_GRAYED, IDM_PREFS, "&Preferences...");
+    AppendMenu(help, MF_STRING | MF_GRAYED, IDM_CONTENTS, "&Contents");
+    AppendMenu(help, MF_STRING | MF_GRAYED, IDM_SEARCH, "&Search for Help On...");
+    AppendMenu(help, MF_STRING | MF_GRAYED, IDM_HOWTO, "&How to Use Help");
+    AppendMenu(help, MF_SEPARATOR, 0, NULL);
+    AppendMenu(help, MF_STRING, IDM_ABOUT, "&About " APP_NAME "...");
+    AppendMenu(bar, MF_POPUP, (UINT)opts, "&Options");
+    AppendMenu(bar, MF_POPUP, (UINT)help, "&Help");
+    return bar;
+}
+
+static HFONT MakeFont(int weight)
+{
+    return CreateFont(-11, 0, 0, 0, weight, 0, 0, 0, ANSI_CHARSET,
+                      OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+                      VARIABLE_PITCH | FF_SWISS, "MS Sans Serif");
+}
+
+BOOL PagerCreate(HWND hwnd)
+{
+    HMENU sys;
+    HDC hdc;
+
+    SetMenu(hwnd, BuildMenu());
+    sys = GetSystemMenu(hwnd, FALSE);
+    AppendMenu(sys, MF_SEPARATOR, 0, NULL);
+    AppendMenu(sys, MF_STRING | MF_GRAYED, IDM_PREFS, "&Preferences...");
+    AppendMenu(sys, MF_STRING, IDM_ABOUT, "&About " APP_NAME "...");
+
+    g_fontBold   = MakeFont(FW_BOLD);
+    g_fontNormal = MakeFont(FW_NORMAL);
+
+    hdc = GetDC(hwnd);
+    g_memDC  = CreateCompatibleDC(hdc);
+    g_memBmp = CreateCompatibleBitmap(hdc, 32, 32);
+    g_memOld = SelectObject(g_memDC, g_memBmp);
+    ReleaseDC(hwnd, hdc);
+
+    g_hwndList = CreateWindow("LISTBOX", "",
+                              WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL |
+                              LBS_OWNERDRAWFIXED | LBS_NOINTEGRALHEIGHT,  /* items are drawn unselected: the list is informative */
+                              MARGIN, LIST_Y, CLIENT_W - 2 * MARGIN, LIST_H,
+                              hwnd, (HMENU)ID_LIST, g_hInst, NULL);
+    return g_hwndList != NULL;
+}
+
+void PagerDestroy(void)
+{
+    if (g_memDC)
+    {
+        SelectObject(g_memDC, g_memOld);
+        DeleteObject(g_memBmp);
+        DeleteDC(g_memDC);
+        g_memDC = NULL;
+    }
+    if (g_fontBold)   { DeleteObject(g_fontBold);   g_fontBold = NULL; }
+    if (g_fontNormal) { DeleteObject(g_fontNormal); g_fontNormal = NULL; }
+}

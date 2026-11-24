@@ -3,13 +3,16 @@
  *
  * System-wide hooks for QuadDesk, a virtual desktop manager for Windows 3.1:
  *
- *   WH_KEYBOARD  Detects the desktop switching shortcuts
- *                (Ctrl+Alt+Shift+arrow keys) in any application, swallows
- *                them and tells QuadDesk which direction was requested.
+ *   WH_KEYBOARD  Detects the QuadDesk shortcuts in any application
+ *                (Ctrl+Alt+Shift+arrow keys to switch desktops,
+ *                Ctrl+Alt+Shift+Space to show or hide QuadDesk), swallows
+ *                them and tells QuadDesk which one was pressed.
  *
  *   WH_CBT       Reports window activations (HCBT_ACTIVATE), so QuadDesk can
  *                jump to the desktop of a window activated from the Task List
- *                or with Alt+Tab.
+ *                or with Alt+Tab, and changes to top-level windows (created,
+ *                destroyed, minimized, maximized, restored), so the pager is
+ *                refreshed at once.
  *
  * Win16 DLLs have a single data segment shared by every task, so the
  * globals below are valid system-wide.
@@ -45,6 +48,7 @@ LRESULT CALLBACK _export KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
         case VK_RIGHT: dir = QD_RIGHT; break;
         case VK_UP:    dir = QD_UP;    break;
         case VK_DOWN:  dir = QD_DOWN;  break;
+        case VK_SPACE: dir = QD_SHOW;  break;
         }
 
         if (dir >= 0 && IsDown(VK_CONTROL) && IsDown(VK_MENU) && IsDown(VK_SHIFT))
@@ -64,10 +68,34 @@ LRESULT CALLBACK _export KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     return CallNextHookEx(g_hKeyboard, nCode, wParam, lParam);
 }
 
+static BOOL IsTopLevel(HWND h)
+{
+    return (GetWindowLong(h, GWL_STYLE) & WS_CHILD) == 0;
+}
+
 LRESULT CALLBACK _export CbtProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
-    if (nCode == HCBT_ACTIVATE && g_hwndMain && !g_switching)
-        PostMessage(g_hwndMain, WM_QD_ACTIVATE, wParam, 0L);
+    if (g_hwndMain)
+    {
+        switch (nCode)
+        {
+        case HCBT_ACTIVATE:
+            if (!g_switching)
+                PostMessage(g_hwndMain, WM_QD_ACTIVATE, wParam, 0L);
+            break;
+
+        case HCBT_CREATEWND:
+            if ((((LPCBT_CREATEWND)lParam)->lpcs->style & WS_CHILD) == 0)
+                PostMessage(g_hwndMain, WM_QD_CHANGED, 0, 0L);
+            break;
+
+        case HCBT_DESTROYWND:
+        case HCBT_MINMAX:
+            if ((HWND)wParam != g_hwndMain && IsTopLevel((HWND)wParam))
+                PostMessage(g_hwndMain, WM_QD_CHANGED, 0, 0L);
+            break;
+        }
+    }
 
     return CallNextHookEx(g_hCbt, nCode, wParam, lParam);
 }

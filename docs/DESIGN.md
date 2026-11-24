@@ -309,12 +309,61 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   everything is finished. [decided]
 - Repository name: `quaddesk`. [decided]
 
-## 15. Implementation status
+## 15. Milestone scope
+
+What each milestone delivers. A feature not listed here belongs to the
+milestone of the section it is described in; if that is unclear, decide it
+here first. [decided — D-063 to D-067]
+
+**1 — Core (v0.1)** — done.
+- Four desktops, Ctrl+Alt+Shift+arrows, parking off screen, focus memory,
+  Task List and Alt+Tab, dialogs, Cascade/Tile, Program Manager rules, exit
+  and recovery (sections 2, 3, 6, 9). Temporary UI: an icon titled
+  `QuadDesk [N]`.
+
+**2 — Pager (v0.2)**
+- Pager window as in section 4: fixed size, 2×2 grid of 80×60 cells,
+  thumbnails with application icons (32, 16 or empty), click a cell to
+  switch, window list with counter, 5 rows, scrollbar and hover, status bar.
+- One 100 ms timer plus CBT events for refreshing; repaint only on change.
+- Live icon as in section 7, including the blinking of desktops with a
+  pending dialog, also in the pager cells. [D-063]
+- Show/hide shortcut Ctrl+Alt+Shift+Space with the smart toggle of
+  section 3, with its default keys; configuring it is milestone 4. [D-064]
+- Menu bar (`Options`, `Help`) and the additions to the system menu.
+  `Preferences...` and the help entries are present but greyed until
+  milestones 4 and 5; `About QuadDesk...` works. [D-065]
+- User interface texts in English; Spanish arrives in milestone 4.
+  [D-066]
+- Not in this milestone: moving windows (3), preferences, "Show icon" off
+  and CPL (4), help (5).
+
+**3 — Moving windows (v0.3)**
+- Drag a real window by its title bar onto a pager cell (section 5).
+- Extended system menu `Move to Desktop ▸` (section 5).
+- Fix: a click on a title bar without moving must not leave a "moving"
+  state.
+
+**4 — Preferences, CPL and languages (v0.4)**
+- Preferences dialog (section 8), configurable shortcuts, "Play a sound",
+  "Show icon" (hidden mode and its warning), start with Windows.
+- `QUADDESK.CPL` (section 12, registration only).
+- Resource DLLs `QDESKEN.DLL` and `QDESKES.DLL`, language from WIN.INI
+  (section 10).
+
+**5 — Help, readme and setup (v0.5)**
+- WinHelp help in both languages, enabling the greyed help entries and F1.
+- `README.TXT` and `LEAME.TXT`.
+- Setup and uninstaller (section 12).
+
+**v1.0** — everything above, tested together on the 486.
+
+## 16. Implementation status
 
 | Milestone | Status |
 |---|---|
 | 1 — Core (v0.1) | **Done.** All tests (tests/HITO1.TXT) passed on the real 486 on 2026-11-24. Temporary UI: an icon titled `QuadDesk [N]`; messages in English only. |
-| 2 — Pager (v0.2) | Not started |
+| 2 — Pager (v0.2) | Delivered, waiting for tests on the 486 (tests/HITO2.TXT). UI texts in English only. |
 | 3 — Moving windows (v0.3) | Not started (technique validated with VDTEST) |
 | 4 — Preferences, CPL, languages (v0.4) | Not started |
 | 5 — Help, readme, setup (v0.5) | Not started |

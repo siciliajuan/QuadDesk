@@ -1,7 +1,9 @@
 /*
- * quaddesk.c - QuadDesk core (QUADDESK.EXE), milestone 1
+ * quaddesk.c - QuadDesk core (QUADDESK.EXE)
  *
- * Virtual desktop manager for Windows 3.1. Milestone 1 implements the core:
+ * Virtual desktop manager for Windows 3.1. This file is the core
+ * (milestone 1); the pager window and the live icon are in pager.c
+ * (milestone 2).
  *
  *   - Four desktops in a fixed 2x2 grid:   1 2
  *                                          3 4
@@ -15,7 +17,7 @@
  *     that desktop.
  *   - Dialogs and other owned windows always stay on their owner's desktop,
  *     also when an application on a hidden desktop opens one (checked
- *     every 500 ms). A message box created without an owner goes to the
+ *     every 100 ms). A message box created without an owner goes to the
  *     desktop of the application (task) that created it.
  *   - Windows brought back on screen by Cascade, Tile or Arrange Icons are
  *     moved to the current desktop.
@@ -28,9 +30,8 @@
  *   - Works at any resolution: how far windows are parked and what counts
  *     as "off screen" depend on the real width of the screen.
  *
- * The pager, preferences and the rest of the user interface arrive in later
- * milestones. In this one QuadDesk runs as a minimized icon whose title
- * shows the current desktop.
+ * Preferences, moving windows between desktops, languages and help arrive
+ * in later milestones (see DESIGN.md, "Milestone scope").
  *
  * Copyright (c) 2026 Juan Sicilia
  * Released under the MIT License. See LICENSE.
@@ -39,16 +40,14 @@
 #include <windows.h>
 #include <string.h>
 #include "qdhook.h"
+#include "qdcore.h"
 
-#define APP_NAME     "QuadDesk"
 #define CLASS_NAME   "QuadDeskMain"
 
-#define NUM_DESKS    4
-#define GRID_COLS    2
 #define MAX_WINDOWS  128
 #define MIN_OFFSET   2000      /* minimum distance hidden windows are moved */
 #define SYNC_TIMER   1
-#define SYNC_MS      500       /* how often new dialogs are checked        */
+#define SYNC_MS      100       /* one timer for everything (D-023, D-043)  */
 
 typedef struct tagWINREC
 {
@@ -58,11 +57,11 @@ typedef struct tagWINREC
     int  x, y;      /* on-screen position while parked       */
 } WINREC;
 
-static HINSTANCE g_hInst;
-static HWND      g_hwndMain;
+HINSTANCE        g_hInst;
+HWND             g_hwndMain;
+int              g_current = 0;
 static WINREC    g_win[MAX_WINDOWS];
 static int       g_count   = 0;
-static int       g_current = 0;
 static HWND      g_focus[NUM_DESKS];   /* last active window of each desktop */
 static HWND      g_pending[NUM_DESKS]; /* dialog that appeared while away    */
 static int       g_pmHome  = -1;       /* desktop of open Program Manager    */
@@ -371,7 +370,7 @@ static void PmUndoExitRestore(void)
    (open here or as an icon, which is on every desktop), and QuadDesk as a
    last resort, so keyboard input never goes to a window that is off
    screen. */
-static void ActivateTopWindow(void)
+void ActivateTopWindow(void)
 {
     HWND h = g_focus[g_current];
     HWND pm = PmWindow();
@@ -454,14 +453,7 @@ static void ParkStrays(void)
     }
 }
 
-static void UpdateTitle(void)
-{
-    char title[32];
-    wsprintf(title, "%s [%d]", (LPSTR)APP_NAME, g_current + 1);
-    SetWindowText(g_hwndMain, title);
-}
-
-static void SwitchTo(int desk)
+void SwitchTo(int desk)
 {
     int i;
 
@@ -495,7 +487,7 @@ static void SwitchTo(int desk)
 
     ActivateTopWindow();
     QDSetSwitching(FALSE);
-    UpdateTitle();
+    PagerRefresh();
 }
 
 static int Neighbour(int desk, int dir)
@@ -533,6 +525,67 @@ static void OnActivate(HWND h)
         g_focus[r->desk] = h;
         SwitchTo(r->desk);
     }
+}
+
+/* ------------------------------------------------------------------ */
+/* Information for the pager (qdcore.h)                                */
+
+int CoreWindows(int desk, HWND *out, int max, BOOL forList)
+{
+    HWND h, pm = PmWindow();
+    int n = 0;
+
+    for (h = GetWindow(GetDesktopWindow(), GW_CHILD);
+         h && n < max; h = GetWindow(h, GW_HWNDNEXT))
+    {
+        BOOL take = FALSE;
+
+        if (h == pm)
+        {
+            /* Open: on its desktop. As an icon: on every desktop, so it is
+               listed everywhere but never drawn as a thumbnail. */
+            if (!IsIconic(pm))
+                take = (g_pmHome == desk);
+            else
+                take = forList;
+        }
+        else
+        {
+            WINREC *r = FindRec(h);
+            if (r && r->desk == desk && IsWindowVisible(h))
+            {
+                if (forList)
+                    take = (GetWindow(h, GW_OWNER) == NULL);
+                else
+                {
+                    char cls[16];
+                    GetClassName(h, cls, sizeof(cls));
+                    take = !IsIconic(h) && lstrcmp(cls, "#32772") != 0;
+                }
+            }
+        }
+        if (take)
+            out[n++] = h;
+    }
+    return n;
+}
+
+void CoreWindowRect(HWND h, RECT *rc)
+{
+    WINREC *r = FindRec(h);
+
+    GetWindowRect(h, rc);
+    if (r && r->parked)
+        OffsetRect(rc, r->x - rc->left, r->y - rc->top);
+}
+
+BOOL CorePending(int desk)
+{
+    HWND p = g_pending[desk];
+
+    if (p && (!IsWindow(p) || !IsWindowVisible(p)))
+        g_pending[desk] = p = NULL;
+    return p != NULL && desk != g_current;
 }
 
 /* Every window back on screen: used on exit and on Windows shutdown. */
@@ -592,27 +645,87 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                        APP_NAME, MB_OK | MB_ICONSTOP);
             return -1;
         }
+        if (!PagerCreate(hwnd))
+        {
+            QDRemove();
+            return -1;
+        }
         Sync();
         PmTrack();
-        UpdateTitle();
         SetTimer(hwnd, SYNC_TIMER, SYNC_MS, NULL);
         return 0;
 
     case WM_TIMER:
         ParkStrays();
+        PagerTick();
         return 0;
 
+    case WM_QD_CHANGED:
+    {
+        /* Several changes may be queued: handle them all at once. */
+        MSG m;
+        while (PeekMessage(&m, hwnd, WM_QD_CHANGED, WM_QD_CHANGED, PM_REMOVE))
+            ;
+        ParkStrays();
+        PagerRefresh();
+        return 0;
+    }
+
     case WM_QD_HOTKEY:
-        if (!g_ending)
+        if (g_ending)
+            return 0;
+        if (wParam == QD_SHOW)
+            PagerToggle();
+        else
             SwitchTo(Neighbour(g_current, (int)wParam));
         return 0;
+
+    case WM_PAINT:
+        PagerPaint(hwnd);
+        return 0;
+
+    case WM_MOUSEMOVE:
+        PagerMouseMove(LOWORD(lParam), HIWORD(lParam));
+        return 0;
+
+    case WM_LBUTTONDOWN:
+        PagerClick(LOWORD(lParam), HIWORD(lParam));
+        return 0;
+
+    case WM_MEASUREITEM:
+        PagerMeasureItem((MEASUREITEMSTRUCT FAR *)lParam);
+        return TRUE;
+
+    case WM_DRAWITEM:
+        PagerDrawItem((DRAWITEMSTRUCT FAR *)lParam);
+        return TRUE;
+
+    case WM_COMMAND:
+        if (PagerCommand(wParam))
+            return 0;
+        break;
+
+    case WM_SYSCOMMAND:
+        if (PagerCommand(wParam))
+            return 0;
+        if ((wParam & 0xFFF0) == SC_MINIMIZE)
+        {
+            /* Minimize without letting Windows activate a window that may
+               be parked on another desktop. */
+            ShowWindow(hwnd, SW_SHOWMINNOACTIVE);
+            ActivateTopWindow();
+            return 0;
+        }
+        break;
+
+    case WM_SIZE:
+        PagerRefresh();
+        InvalidateRect(hwnd, NULL, TRUE);
+        break;
 
     case WM_QD_ACTIVATE:
         OnActivate((HWND)wParam);
         return 0;
-
-    case WM_QUERYOPEN:
-        return 0;               /* milestone 1: always stays an icon */
 
     /* Windows is about to shut down. Many applications save their window
        position when they receive WM_ENDSESSION (or even earlier), and the
@@ -645,6 +758,7 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
         QDRemove();
         UnparkAll();
         PmRestoreForExit();
+        PagerDestroy();
         PostQuitMessage(0);
         return 0;
     }
@@ -658,7 +772,9 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     MSG msg;
     HWND hwnd;
 
-    (void)lpszCmdLine; (void)nCmdShow;
+    int w, h;
+
+    (void)lpszCmdLine;
     g_hInst = hInstance;
 
     if (hPrevInstance)
@@ -671,20 +787,23 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     memset(&wc, 0, sizeof(wc));
     wc.lpfnWndProc   = MainWndProc;
     wc.hInstance     = hInstance;
-    wc.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
+    wc.hIcon         = NULL;                      /* live icon: drawn by us */
     wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     wc.lpszClassName = CLASS_NAME;
     if (!RegisterClass(&wc))
         return 0;
 
-    hwnd = CreateWindow(CLASS_NAME, APP_NAME, WS_OVERLAPPEDWINDOW,
-                        CW_USEDEFAULT, 0, 300, 200,
+    /* Fixed size; first shown in the top right corner of the screen. */
+    PagerOuterSize(&w, &h);
+    hwnd = CreateWindow(CLASS_NAME, APP_NAME, PAGER_STYLE,
+                        GetSystemMetrics(SM_CXSCREEN) - w - 8, 8, w, h,
                         NULL, NULL, hInstance, NULL);
     if (!hwnd)
         return 0;
 
-    ShowWindow(hwnd, SW_SHOWMINNOACTIVE);
+    ShowWindow(hwnd, nCmdShow);
+    UpdateWindow(hwnd);
 
     while (GetMessage(&msg, NULL, 0, 0))
     {

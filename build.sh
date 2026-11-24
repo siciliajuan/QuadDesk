@@ -26,7 +26,8 @@ wlib -q -n qdhook.lib +qdhook.dll
 
 echo "Building QUADDESK.EXE"
 wcc $CFLAGS -fo=quaddesk.obj ../src/quaddesk.c
-wlink op q system windows file quaddesk.obj library qdhook.lib \
+wcc $CFLAGS -fo=pager.obj ../src/pager.c
+wlink op q system windows file quaddesk.obj file pager.obj library qdhook.lib \
       name quaddesk.exe option stack=8k option heapsize=4k
 
 echo "Done: $OUT/quaddesk.exe and $OUT/qdhook.dll"
