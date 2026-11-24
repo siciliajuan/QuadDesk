@@ -188,7 +188,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - **Cascade, Tile and Arrange Icons** (Task List) bring every window on
   screen: QuadDesk moves those windows to the current desktop. This doubles
   as an emergency recovery and is documented in the help and the README.
-  [decided]
+  Minimized windows are not touched by Cascade or Tile; this includes
+  Program Manager while it is an icon on other desktops (D-054), which
+  stays as it is. [decided — D-062]
 
 ## 7. Minimizing and the live icon
 
@@ -311,7 +313,7 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 
 | Milestone | Status |
 |---|---|
-| 1 — Core (v0.1) | Delivered (with resolution and ownerless-dialog fixes), waiting for tests on the 486. Temporary UI: an icon titled `QuadDesk [N]`; messages in English only. |
+| 1 — Core (v0.1) | **Done.** All tests (tests/HITO1.TXT) passed on the real 486 on 2026-11-24. Temporary UI: an icon titled `QuadDesk [N]`; messages in English only. |
 | 2 — Pager (v0.2) | Not started |
 | 3 — Moving windows (v0.3) | Not started (technique validated with VDTEST) |
 | 4 — Preferences, CPL, languages (v0.4) | Not started |

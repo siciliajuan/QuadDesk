@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.1 - Milestone 1: core (unreleased)
+## v0.1 - Milestone 1: core (2026-11-24)
 
 - QDHOOK.DLL with system-wide keyboard and CBT hooks.
 - Four desktops in a fixed 2x2 grid.
