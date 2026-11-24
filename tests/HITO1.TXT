@@ -1,0 +1,97 @@
+QUADDESK - PRUEBA DEL HITO 1 (NÚCLEO)
+=====================================
+
+Este hito no tiene interfaz todavía: QuadDesk funciona como un icono
+minimizado cuyo título indica el escritorio actual, por ejemplo
+"QuadDesk [1]". Los escritorios forman una cuadrícula de 2 x 2:
+
+     1  2
+     3  4
+
+
+INSTALAR
+--------
+  1. Crea C:\QUADDESK y copia QUADDESK.EXE y QDHOOK.DLL en él.
+  2. Arranca Windows (modo 386 mejorado).
+  3. Ejecuta C:\QUADDESK\QUADDESK.EXE (Archivo > Ejecutar).
+     Debe aparecer un icono "QuadDesk [1]" abajo, en el escritorio.
+
+  Para salir: haz clic en el icono y elige Cerrar.
+  Al cerrar, TODAS las ventanas vuelven a la pantalla.
+
+
+PRUEBA 1 - CAMBIAR DE ESCRITORIO
+--------------------------------
+  1. Abre el Bloc de notas y la Calculadora (escritorio 1).
+  2. Pulsa Ctrl+Alt+Mayús+Flecha derecha.
+     - Las dos ventanas deben desaparecer.
+     - El icono debe decir "QuadDesk [2]".
+  3. Abre Write (escritorio 2).
+  4. Pulsa Ctrl+Alt+Mayús+Flecha abajo (pasa al 4) y luego
+     Ctrl+Alt+Mayús+Flecha izquierda (pasa al 3).
+  5. Vuelve al 1: Ctrl+Alt+Mayús+Flecha arriba.
+     - Deben volver el Bloc de notas y la Calculadora, en su sitio.
+     - Write no debe verse.
+  6. Estando en el 1, pulsa Ctrl+Alt+Mayús+Flecha izquierda.
+     - No debe pasar nada (no hay escritorio a la izquierda).
+  7. Comprueba que la ventana que queda activa tras cada cambio es una
+     del escritorio nuevo (puedes escribir en ella sin hacer clic).
+
+
+PRUEBA 2 - MAXIMIZADAS Y MINIMIZADAS
+------------------------------------
+  1. En un escritorio, maximiza una ventana y minimiza otra (que quede
+     como icono).
+  2. Cambia de escritorio y vuelve.
+     - La maximizada debe seguir maximizada y bien colocada.
+     - El icono de la minimizada debe desaparecer al irte y volver a
+       aparecer en su sitio al regresar.
+
+
+PRUEBA 3 - LISTA DE TAREAS Y ALT+TAB
+------------------------------------
+  1. Deja ventanas en el escritorio 1 y vete al 2.
+  2. Abre la Lista de tareas (Ctrl+Esc) y elige una ventana del 1.
+     - QuadDesk debe saltar al escritorio 1 y mostrarla.
+  3. Repite usando Alt+Tab para llegar a una ventana de otro escritorio.
+
+
+PRUEBA 4 - DIÁLOGOS
+-------------------
+  1. En el escritorio 1, abre el Bloc de notas y escribe algo.
+  2. Vete al escritorio 2.
+  3. Desde la Lista de tareas, elige "Cerrar tarea" sobre el Bloc de
+     notas SIN ir antes al escritorio 1 (selecciónalo y pulsa
+     "Terminar tarea"). Te preguntará si quieres guardar los cambios.
+     - Lo esperado: el diálogo puede asomar un instante, pero en menos
+       de medio segundo debe irse con el Bloc de notas al escritorio 1.
+       Tú debes seguir en el escritorio 2, con una ventana del 2 activa.
+     - Ve al escritorio 1: el diálogo debe estar allí. Respóndelo.
+     - Si en lugar de eso QuadDesk salta él solo al escritorio 1,
+       anótalo: la Lista de tareas activa el Bloc de notas al cerrarlo.
+
+
+PRUEBA 5 - CASCADA Y MOSAICO
+----------------------------
+  1. Reparte ventanas en varios escritorios.
+  2. Abre la Lista de tareas y pulsa "Cascada".
+     - Deben aparecer en pantalla las ventanas de TODOS los escritorios.
+  3. Cambia de escritorio y vuelve.
+     - Esas ventanas deben haberse quedado en el escritorio en el que
+       pulsaste "Cascada".
+
+
+PRUEBA 6 - SALIR
+----------------
+  1. Reparte ventanas en varios escritorios.
+  2. Cierra QuadDesk (clic en el icono > Cerrar).
+     - Todas las ventanas deben volver a la pantalla, en su sitio.
+  3. Vuelve a abrir QuadDesk, reparte ventanas y sal de Windows sin
+     cerrar QuadDesk. Al volver a Windows no debe faltar nada.
+
+
+QUÉ ENVIARME
+------------
+  Para cada prueba: OK o, si falla, qué has visto exactamente.
+  En la prueba 4, dime dónde se quedó el diálogo.
+  Cualquier cuelgue o "Error de aplicación": el texto exacto.
