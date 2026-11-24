@@ -15,6 +15,8 @@
 - Dialogs and message boxes stay on their application's desktop, also
   message boxes created without an owner window.
 - Works at any resolution: parking and recovery use the real screen width.
+- Windows owned by Program Manager or QuadDesk (such as the label under a
+  minimized icon) are never moved, so icon labels no longer disappear.
 - Windows brought back by Cascade, Tile or Arrange Icons move to the current
   desktop.
 - All windows come back on screen when QuadDesk exits or Windows shuts down;

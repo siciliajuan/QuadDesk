@@ -63,17 +63,29 @@ PRUEBA 3 - LISTA DE TAREAS Y ALT+TAB
 
 PRUEBA 4 - DIÁLOGOS
 -------------------
+  Usa VDTEST.EXE (viene en este zip junto con VDHOOK.DLL). Sus dos
+  botones de la izquierda abren un aviso 5 segundos después de pulsarlos.
+
+  A) Aviso con ventana propietaria
+  1. En el escritorio 1, abre VDTEST.
+  2. Pulsa "Diálogo con propietaria" y, antes de 5 segundos, pasa al
+     escritorio 2 (Ctrl+Alt+Mayús+Flecha derecha).
+  3. Espera a que pasen los 5 segundos.
+     - El aviso puede asomar un instante, pero en menos de medio
+       segundo debe irse. Tú sigues en el escritorio 2.
+  4. Vuelve al escritorio 1: el aviso debe estar allí. Acéptalo.
+
+  B) Aviso sin ventana propietaria
+  1. Repite A, pero con el botón "Diálogo sin propietaria (NULL)".
+     - Lo esperado es lo mismo: el aviso se va al escritorio 1.
+
+  C) Terminar tarea desde la Lista de tareas
   1. En el escritorio 1, abre el Bloc de notas y escribe algo.
-  2. Vete al escritorio 2.
-  3. Desde la Lista de tareas, elige "Cerrar tarea" sobre el Bloc de
-     notas SIN ir antes al escritorio 1 (selecciónalo y pulsa
-     "Terminar tarea"). Te preguntará si quieres guardar los cambios.
-     - Lo esperado: el diálogo puede asomar un instante, pero en menos
-       de medio segundo debe irse con el Bloc de notas al escritorio 1.
-       Tú debes seguir en el escritorio 2, con una ventana del 2 activa.
-     - Ve al escritorio 1: el diálogo debe estar allí. Respóndelo.
-     - Si en lugar de eso QuadDesk salta él solo al escritorio 1,
-       anótalo: la Lista de tareas activa el Bloc de notas al cerrarlo.
+  2. Vete al escritorio 2, abre la Lista de tareas (Ctrl+Esc), elige el
+     Bloc de notas y pulsa "Terminar tarea".
+     - Lo esperado: QuadDesk te lleva al escritorio 1, donde el Bloc de
+       notas pregunta si quieres guardar. Es lo correcto: la Lista de
+       tareas activa la aplicación antes de cerrarla.
 
 
 PRUEBA 5 - CASCADA Y MOSAICO
@@ -88,11 +100,25 @@ PRUEBA 5 - CASCADA Y MOSAICO
 
 PRUEBA 6 - SALIR
 ----------------
+  A) Cerrar QuadDesk
   1. Reparte ventanas en varios escritorios.
   2. Cierra QuadDesk (clic en el icono > Cerrar).
      - Todas las ventanas deben volver a la pantalla, en su sitio.
-  3. Vuelve a abrir QuadDesk, reparte ventanas y sal de Windows sin
-     cerrar QuadDesk. Al volver a Windows no debe faltar nada.
+
+  B) Salir de Windows con QuadDesk abierto
+  Algunas aplicaciones guardan la posición de su ventana al salir de
+  Windows. Si estuviera fuera de la pantalla, la próxima vez se
+  abrirían invisibles. Esto comprueba que no pasa.
+  1. Abre QuadDesk y deja el Administrador de archivos en el
+     escritorio 2.
+  2. Vuelve al escritorio 1 (el Administrador de archivos no se ve).
+  3. Sal de Windows desde el Administrador de programas
+     (Archivo > Salir de Windows) sin cerrar QuadDesk.
+  4. Arranca Windows otra vez (win) y abre el Administrador de
+     archivos.
+     - Debe aparecer en pantalla, en el sitio donde lo tenías.
+     - Si no se ve pero sale en la Lista de tareas, es un fallo:
+       guardó la posición de fuera de la pantalla.
 
 
 PRUEBA 7 - RESOLUCIÓN MAYOR (opcional, si tu tarjeta gráfica lo permite)
@@ -106,8 +132,17 @@ PRUEBA 7 - RESOLUCIÓN MAYOR (opcional, si tu tarjeta gráfica lo permite)
        mueve al abrir QuadDesk.
 
 
+PRUEBA 8 - NOMBRES DE LOS ICONOS
+--------------------------------
+  1. Minimiza el Administrador de programas y deja QuadDesk como icono.
+  2. Recorre los cuatro escritorios varias veces, abriendo y cerrando
+     alguna ventana entre medias.
+     - En todos los escritorios, los dos iconos deben verse siempre con
+       su nombre debajo.
+
+
 QUÉ ENVIARME
 ------------
   Para cada prueba: OK o, si falla, qué has visto exactamente.
-  En la prueba 4, dime dónde se quedó el diálogo.
+  En la prueba 4, dime dónde se quedó cada aviso.
   Cualquier cuelgue o "Error de aplicación": el texto exacto.

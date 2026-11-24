@@ -47,7 +47,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   pixel threshold is used. [decided]
 - Windows that stay visible on every desktop (never moved): QuadDesk itself
   (the pager follows the user from desktop to desktop when open), Program
-  Manager and system-modal windows. [decided]
+  Manager and system-modal windows, **and every window they own**: the
+  label under their minimized icon (a separate window in Windows 3.1) and
+  their dialogs, such as Program Manager's File > Run. [decided]
 - Windows marked "always on top" by their application stay on their own
   desktop like any other window. [decided]
 - Minimized applications (icons) belong to their desktop and only appear
@@ -140,7 +142,10 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   trigger a desktop switch, even though Windows activates it when it opens
   (otherwise the rule above would make QuadDesk jump every time a background
   application shows a message). Activating a window that already existed,
-  for example with Alt+Tab, does switch. This is the technical consequence
+  for example with Alt+Tab, does switch. This includes **End Task** in the
+  Task List: Windows activates the application before closing it, so
+  QuadDesk goes to its desktop, where the user sees its "save changes?"
+  question. This is accepted as correct behaviour (D-048). This is the technical consequence
   of the previous rule (D-020). [decided — implemented in milestone 1]
 - **System-modal** message boxes and system errors (GPF, drive not ready…)
   always appear on the current desktop. [decided]

@@ -104,18 +104,29 @@ static HWND RootOwner(HWND h)
     return h;
 }
 
-/* Windows QuadDesk never moves: itself, Program Manager and any
-   system-modal window. */
-static BOOL IsManaged(HWND h)
+/* Windows that are visible on every desktop: QuadDesk itself, Program
+   Manager and any system-modal window. */
+static BOOL IsAlwaysVisible(HWND h)
 {
     char cls[32];
 
-    if (h == g_hwndMain || !IsWindow(h) || !IsWindowVisible(h))
-        return FALSE;
-    if (h == GetSysModalWindow())
-        return FALSE;
+    if (h == g_hwndMain || h == GetSysModalWindow())
+        return TRUE;
     GetClassName(h, cls, sizeof(cls));
-    if (lstrcmpi(cls, "Progman") == 0)
+    return lstrcmpi(cls, "Progman") == 0;
+}
+
+/* Windows QuadDesk never moves: the always-visible ones and every window
+   they own. Owned windows include the label under a minimized icon (in
+   Windows 3.1 it is a separate window owned by the icon) and dialogs such
+   as Program Manager's File > Run. */
+static BOOL IsManaged(HWND h)
+{
+    if (!IsWindow(h) || !IsWindowVisible(h))
+        return FALSE;
+    if (IsAlwaysVisible(h))
+        return FALSE;
+    if (GetWindow(h, GW_OWNER) != NULL && IsAlwaysVisible(RootOwner(h)))
         return FALSE;
     return TRUE;
 }
