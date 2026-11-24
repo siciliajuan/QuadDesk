@@ -147,7 +147,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - **Dialogs without owner** (class `#32770`, for example a `MessageBox`
   called with no owner window) belong to the application (task) that
   created them: if that application has no window on the current desktop
-  but has windows on another one, the dialog goes there. [decided]
+  but has windows on another one, the dialog goes there. If its windows are
+  spread over several other desktops, it goes to the desktop of the first
+  one QuadDesk finds. [decided]
 - **Other new windows without owner** go to the current desktop (for
   example a second main window). A window created hidden is assigned when
   it is shown. [decided]

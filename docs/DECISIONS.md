@@ -53,3 +53,4 @@ the old one instead of editing it.
 | D-044 | 2026-11-24 | No operating-mode requirement; documentation says "tested in 386 enhanced mode". | The hooks work in standard mode too; requiring 386 enhanced mode was never decided. |
 | D-045 | 2026-11-24 | Keep "Designed for VGA (640×480); works at higher resolutions" in the README. No repository extras (badges, issue templates, CI) for now. | The sentence states clearly that higher resolutions work (D-034). |
 | D-046 | 2026-11-24 | Maximized windows parked off screen validated on the real 486 and in the emulator. | Confirms D-021. |
+| D-047 | 2026-11-24 | Ownerless dialog of an application with windows on several desktops: stays on the current desktop if the application has a window here; otherwise goes to the desktop of its first window found. | Confirmed by Juan; refines D-042. |
