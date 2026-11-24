@@ -15,8 +15,14 @@
 - Dialogs and message boxes stay on their application's desktop, also
   message boxes created without an owner window.
 - Works at any resolution: parking and recovery use the real screen width.
-- Windows owned by Program Manager or QuadDesk (such as the label under a
+- Program Manager is always at hand: when open it belongs to its desktop
+  and is minimized on the others, where it appears as an icon; restoring
+  that icon opens it on the current desktop. Minimized by the user, its
+  icon is on every desktop.
+- Windows owned by QuadDesk or Program Manager (such as the label under a
   minimized icon) are never moved, so icon labels no longer disappear.
+- Windows come back on screen as soon as Windows starts shutting down, so
+  applications such as Clock never save an off-screen position.
 - Windows brought back by Cascade, Tile or Arrange Icons move to the current
   desktop.
 - All windows come back on screen when QuadDesk exits or Windows shuts down;

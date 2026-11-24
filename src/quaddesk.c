@@ -22,6 +22,9 @@
  *   - When QuadDesk exits (or Windows shuts down) every window is brought
  *     back on screen. At start-up, windows left off screen by a previous
  *     crash are recovered.
+ *   - Program Manager is special: while it is open it belongs to one
+ *     desktop; on every other desktop it is an icon. See the "Program
+ *     Manager" section below.
  *   - Works at any resolution: how far windows are parked and what counts
  *     as "off screen" depend on the real width of the screen.
  *
@@ -61,6 +64,10 @@ static WINREC    g_win[MAX_WINDOWS];
 static int       g_count   = 0;
 static int       g_current = 0;
 static HWND      g_focus[NUM_DESKS];   /* last active window of each desktop */
+static int       g_pmHome  = -1;       /* desktop of open Program Manager    */
+static BOOL      g_pmByUs  = FALSE;    /* QuadDesk minimized Program Manager */
+static BOOL      g_pmExitRestored = FALSE;
+static BOOL      g_ending = FALSE;     /* Windows is shutting down           */
 static int       g_cxScreen;           /* screen width in pixels             */
 static int       g_offset;             /* how far hidden windows are moved   */
 
@@ -104,22 +111,24 @@ static HWND RootOwner(HWND h)
     return h;
 }
 
-/* Windows that are visible on every desktop: QuadDesk itself, Program
-   Manager and any system-modal window. */
-static BOOL IsAlwaysVisible(HWND h)
+static BOOL IsProgman(HWND h)
 {
-    char cls[32];
-
-    if (h == g_hwndMain || h == GetSysModalWindow())
-        return TRUE;
+    char cls[16];
     GetClassName(h, cls, sizeof(cls));
     return lstrcmpi(cls, "Progman") == 0;
 }
 
+/* Windows that are never parked: QuadDesk itself, any system-modal window
+   and Program Manager (which QuadDesk minimizes instead of parking; see
+   the "Program Manager" section). */
+static BOOL IsAlwaysVisible(HWND h)
+{
+    return h == g_hwndMain || h == GetSysModalWindow() || IsProgman(h);
+}
+
 /* Windows QuadDesk never moves: the always-visible ones and every window
    they own. Owned windows include the label under a minimized icon (in
-   Windows 3.1 it is a separate window owned by the icon) and dialogs such
-   as Program Manager's File > Run. */
+   Windows 3.1 it is a separate window owned by the icon). */
 static BOOL IsManaged(HWND h)
 {
     if (!IsWindow(h) || !IsWindowVisible(h))
@@ -260,21 +269,119 @@ static void Unpark(WINREC *r)
     r->parked = FALSE;
 }
 
+/* ------------------------------------------------------------------ */
+/* Program Manager                                                     */
+/*
+ * Program Manager must always be at hand, so it is never parked:
+ *   - Minimized by the user: its icon is shown on every desktop and
+ *     QuadDesk never restores it by itself (g_pmHome = -1).
+ *   - Open (normal or maximized): it belongs to the desktop where it is
+ *     open (g_pmHome). When the user leaves that desktop, QuadDesk
+ *     minimizes it (g_pmByUs = TRUE), so on every other desktop it is an
+ *     icon. Coming back to its desktop restores it.
+ *   - Restoring its icon on another desktop (double click, Restore, or
+ *     Switch To in the Task List) opens it there, in the state it had
+ *     (Windows remembers normal or maximized), and it now belongs to that
+ *     desktop. Activating it never makes QuadDesk jump.
+ *   - On exit or Windows shutdown, if QuadDesk minimized it, it is
+ *     restored first, because Program Manager saves its state on exit.
+ * This is the only window whose state QuadDesk changes (D-054).
+ */
+
+static HWND PmWindow(void)
+{
+    HWND h = FindWindow("Progman", NULL);
+    return (h && IsWindowVisible(h)) ? h : NULL;
+}
+
+/* Notices what the user did with Program Manager since the last look. */
+static void PmTrack(void)
+{
+    HWND pm = PmWindow();
+
+    if (pm == NULL)
+        return;
+    if (!IsIconic(pm))
+    {
+        /* Open: restored by the user here, or still open on its desktop. */
+        if (g_pmByUs || g_pmHome < 0)
+            g_pmHome = g_current;
+        g_pmByUs = FALSE;
+    }
+    else if (!g_pmByUs)
+        g_pmHome = -1;                /* minimized by the user */
+}
+
+/* Leaving the desktop where Program Manager is open: make it an icon. */
+static void PmLeave(void)
+{
+    HWND pm = PmWindow();
+
+    if (pm && !IsIconic(pm) && g_pmHome == g_current)
+    {
+        ShowWindow(pm, SW_SHOWMINNOACTIVE);
+        g_pmByUs = TRUE;
+    }
+}
+
+/* Arriving at Program Manager's desktop: open it again if QuadDesk
+   minimized it. Windows restores it maximized if it was maximized. */
+static void PmArrive(void)
+{
+    HWND pm = PmWindow();
+
+    if (pm && IsIconic(pm) && g_pmByUs && g_pmHome == g_current)
+    {
+        ShowWindow(pm, SW_RESTORE);
+        g_pmByUs = FALSE;
+    }
+}
+
+/* Exit or shutdown: give Program Manager back the state the user left it
+   in, so it does not save itself minimized. */
+static void PmRestoreForExit(void)
+{
+    HWND pm = PmWindow();
+
+    if (pm && IsIconic(pm) && g_pmByUs)
+    {
+        ShowWindow(pm, SW_RESTORE);
+        g_pmByUs = FALSE;
+        g_pmExitRestored = TRUE;
+    }
+}
+
+/* Shutdown cancelled: undo PmRestoreForExit. */
+static void PmUndoExitRestore(void)
+{
+    HWND pm = PmWindow();
+
+    if (g_pmExitRestored && pm && !IsIconic(pm) && g_pmHome != g_current)
+    {
+        ShowWindow(pm, SW_SHOWMINNOACTIVE);
+        g_pmByUs = TRUE;
+    }
+    g_pmExitRestored = FALSE;
+}
+
 /* Gives the focus back to the window that was active on the current
    desktop when the user left it. If that window no longer exists, the
-   topmost window of the desktop is activated instead, and Program Manager
-   when the desktop is empty, so keyboard input never goes to a window that
-   is off screen. */
+   topmost window of the desktop is activated instead, then Program Manager
+   (open here or as an icon, which is on every desktop), and QuadDesk as a
+   last resort, so keyboard input never goes to a window that is off
+   screen. */
 static void ActivateTopWindow(void)
 {
     HWND h = g_focus[g_current];
+    HWND pm = PmWindow();
 
     if (h && IsWindow(h) && IsWindowVisible(h))
     {
         WINREC *r = FindRec(h);
         if (r == NULL)
             r = FindRec(RootOwner(h));
-        if (r && r->desk == g_current && !r->parked)
+        if ((r && r->desk == g_current && !r->parked) ||
+            (h == pm && !IsIconic(pm) && g_pmHome == g_current))
         {
             SetActiveWindow(h);
             return;
@@ -284,16 +391,15 @@ static void ActivateTopWindow(void)
     for (h = GetWindow(GetDesktopWindow(), GW_CHILD); h; h = GetWindow(h, GW_HWNDNEXT))
     {
         WINREC *r = FindRec(h);
-        if (r && r->desk == g_current && !r->parked && !IsIconic(h))
+        if ((r && r->desk == g_current && !r->parked && !IsIconic(h)) ||
+            (h == pm && !IsIconic(h)))
         {
             SetActiveWindow(h);
             return;
         }
     }
 
-    h = FindWindow("Progman", NULL);
-    if (h)
-        SetActiveWindow(h);
+    SetActiveWindow(pm ? pm : g_hwndMain);
 }
 
 /* Called periodically: a dialog or message box opened by an application
@@ -305,7 +411,10 @@ static void ParkStrays(void)
     BOOL parkedAny = FALSE;
     WINREC *active;
 
+    if (g_ending)
+        return;
     Sync();
+    PmTrack();
     for (i = 0; i < g_count; i++)
         if (g_win[i].desk != g_current && !g_win[i].parked)
         {
@@ -338,25 +447,29 @@ static void SwitchTo(int desk)
         return;
 
     Sync();
+    PmTrack();
     QDSetSwitching(TRUE);
 
     /* Remember which window had the focus on the desktop we are leaving. */
     {
         HWND active = GetActiveWindow();
         WINREC *r = active ? FindRec(active) : NULL;
-        if (r && r->desk == g_current)
+        if ((r && r->desk == g_current) ||
+            (active && active == PmWindow() && g_pmHome == g_current))
             g_focus[g_current] = active;
     }
 
     for (i = 0; i < g_count; i++)
         if (g_win[i].desk == g_current)
             Park(&g_win[i]);
+    PmLeave();
 
     g_current = desk;
 
     for (i = 0; i < g_count; i++)
         if (g_win[i].desk == g_current)
             Unpark(&g_win[i]);
+    PmArrive();
 
     ActivateTopWindow();
     QDSetSwitching(FALSE);
@@ -453,6 +566,7 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             return -1;
         }
         Sync();
+        PmTrack();
         UpdateTitle();
         SetTimer(hwnd, SYNC_TIMER, SYNC_MS, NULL);
         return 0;
@@ -462,7 +576,8 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
         return 0;
 
     case WM_QD_HOTKEY:
-        SwitchTo(Neighbour(g_current, (int)wParam));
+        if (!g_ending)
+            SwitchTo(Neighbour(g_current, (int)wParam));
         return 0;
 
     case WM_QD_ACTIVATE:
@@ -472,11 +587,29 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
     case WM_QUERYOPEN:
         return 0;               /* milestone 1: always stays an icon */
 
+    /* Windows is about to shut down. Many applications save their window
+       position when they receive WM_ENDSESSION (or even earlier), and the
+       order in which applications are told is not defined. Every window is
+       brought back on screen now, before any WM_ENDSESSION is sent, so no
+       application saves an off-screen position. */
+    case WM_QUERYENDSESSION:
+        g_ending = TRUE;
+        UnparkAll();
+        PmRestoreForExit();
+        return TRUE;
+
     case WM_ENDSESSION:
         if (wParam)
         {
             QDRemove();
             UnparkAll();
+        }
+        else
+        {
+            /* Shutdown cancelled by some application: back to normal. */
+            g_ending = FALSE;
+            PmUndoExitRestore();
+            ParkStrays();
         }
         return 0;
 
@@ -484,6 +617,7 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
         KillTimer(hwnd, SYNC_TIMER);
         QDRemove();
         UnparkAll();
+        PmRestoreForExit();
         PostQuitMessage(0);
         return 0;
     }

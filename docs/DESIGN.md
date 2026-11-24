@@ -46,10 +46,30 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   seen, even one that only peeks in from the right, is on screen. No fixed
   pixel threshold is used. [decided]
 - Windows that stay visible on every desktop (never moved): QuadDesk itself
-  (the pager follows the user from desktop to desktop when open), Program
-  Manager and system-modal windows, **and every window they own**: the
-  label under their minimized icon (a separate window in Windows 3.1) and
-  their dialogs, such as Program Manager's File > Run. [decided]
+  (the pager follows the user from desktop to desktop when open) and
+  system-modal windows, **and every window they own**, such as the label
+  under QuadDesk's minimized icon (a separate window in Windows 3.1).
+  [decided]
+- **Program Manager** must always be at hand, so it has its own rules
+  (D-054 to D-059; they supersede D-051 and D-052). It is the only window
+  whose state QuadDesk changes:
+  - **Minimized by the user:** its icon is shown on every desktop, and
+    QuadDesk never restores it by itself, not even on the desktop where
+    the user minimized it. [decided — D-055]
+  - **Open (normal or maximized):** it belongs to the desktop where it is
+    open. When the user leaves that desktop, QuadDesk minimizes it, so on
+    every other desktop it appears as an icon. [decided — D-054]
+  - **Back to its desktop without touching the icon:** QuadDesk restores it
+    there automatically, normal or maximized as it was. [decided — D-056]
+  - **Restoring the icon on another desktop** (double click, Restore in its
+    menu, or Switch To in the Task List) opens it on that desktop in the
+    state it had, and it now belongs to that desktop. Because its icon is
+    on every desktop, choosing it in the Task List or with Alt+Tab never
+    makes QuadDesk jump. [decided — D-054, D-057]
+  - **Exit and shutdown:** if QuadDesk minimized it, it is restored first,
+    because Program Manager saves its state on exit and would otherwise
+    start minimized next time. If the shutdown is cancelled, it is
+    minimized again. [decided — D-058]
 - Windows marked "always on top" by their application stay on their own
   desktop like any other window. [decided]
 - Minimized applications (icons) belong to their desktop and only appear
@@ -57,8 +77,10 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - **Focus:** QuadDesk remembers which window had the focus on each desktop
   and gives it back when the user returns. If that window no longer exists
   (or the desktop was never visited), the topmost window of the desktop is
-  activated, or Program Manager if the desktop is empty, so keyboard input
-  never goes to an off-screen window. [decided]
+  activated; if there is none, Program Manager (open on that desktop or as
+  its icon, which is on every desktop), and QuadDesk itself as a last
+  resort, so keyboard input never goes to an off-screen window.
+  [decided — D-036, D-059]
 
 ## 3. Keyboard
 
@@ -204,7 +226,11 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 
 ## 9. Exit and recovery
 
-- On exit and on `WM_ENDSESSION` every window comes back on screen. There is
+- On exit, and as soon as Windows starts shutting down
+  (`WM_QUERYENDSESSION`, before any application receives `WM_ENDSESSION`),
+  every window comes back on screen, so no application saves an off-screen
+  position. If an application cancels the shutdown, the windows go back to
+  their desktops. There is
   no manual "Gather all windows" command (too easy to trigger by mistake).
   [decided]
 - At start-up, windows left off screen by a previous crash are brought back

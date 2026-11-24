@@ -119,6 +119,11 @@ PRUEBA 6 - SALIR
      - Debe aparecer en pantalla, en el sitio donde lo tenías.
      - Si no se ve pero sale en la Lista de tareas, es un fallo:
        guardó la posición de fuera de la pantalla.
+  5. Repite los pasos 1 a 4 con el Reloj en la esquina inferior derecha
+     del escritorio 2.
+     - Al volver a Windows, el Reloj debe abrirse entero, en esa esquina.
+     - Si no, mira en C:\WINDOWS\WIN.INI o C:\WINDOWS\CLOCK.INI la
+       sección [Clock] y anota la línea Position=.
 
 
 PRUEBA 7 - RESOLUCIÓN MAYOR (opcional, si tu tarjeta gráfica lo permite)
@@ -132,13 +137,46 @@ PRUEBA 7 - RESOLUCIÓN MAYOR (opcional, si tu tarjeta gráfica lo permite)
        mueve al abrir QuadDesk.
 
 
-PRUEBA 8 - NOMBRES DE LOS ICONOS
---------------------------------
-  1. Minimiza el Administrador de programas y deja QuadDesk como icono.
-  2. Recorre los cuatro escritorios varias veces, abriendo y cerrando
-     alguna ventana entre medias.
-     - En todos los escritorios, los dos iconos deben verse siempre con
-       su nombre debajo.
+PRUEBA 8 - ADMINISTRADOR DE PROGRAMAS
+-------------------------------------
+  A) Abierto en un escritorio
+  1. En el escritorio 1, deja el Administrador de programas abierto
+     (ventana normal) y pasa al escritorio 2.
+     - En el 2 debe verse como icono, con su nombre debajo.
+  2. Vuelve al 1 sin tocar el icono.
+     - Debe abrirse solo, como lo dejaste.
+  3. Repite 1 y 2 con el Administrador de programas maximizado.
+     - Al volver al 1 debe seguir maximizado.
+
+  B) Restaurarlo en otro escritorio
+  1. Con el Administrador de programas abierto en el 1, pasa al 2 y haz
+     doble clic en su icono.
+     - Debe abrirse en el 2 (maximizado si lo estaba).
+  2. Vuelve al 1.
+     - En el 1 debe verse ahora como icono: ya pertenece al 2.
+  3. Repite B.1 usando la Lista de tareas (Ctrl+Esc > Cambiar a).
+     - QuadDesk no debe saltar de escritorio: se abre donde estás.
+
+  C) Minimizado por ti
+  1. Minimiza tú el Administrador de programas y recorre los cuatro
+     escritorios, incluido aquel en el que lo minimizaste.
+     - Su icono debe verse en todos y no debe abrirse solo nunca.
+
+  D) Escritorio vacío
+  1. Con el Administrador de programas como icono, pasa a un escritorio
+     sin ventanas.
+     - Su icono debe quedar seleccionado (ventana activa) y QuadDesk no
+       debe saltar a ningún otro escritorio.
+
+  E) Salir con el Administrador de programas minimizado por QuadDesk
+  1. Ábrelo en el 1, pasa al 2 (se ve como icono) y sal de Windows desde
+     su icono (clic > Cerrar).
+     - Al arrancar Windows otra vez, debe aparecer abierto, no como icono.
+
+  F) Nombres de los iconos
+  1. Recorre los escritorios varias veces.
+     - Los iconos de QuadDesk y del Administrador de programas deben
+       verse siempre con su nombre debajo.
 
 
 QUÉ ENVIARME
