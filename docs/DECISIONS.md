@@ -74,3 +74,5 @@ the old one instead of editing it.
 | D-065 | 2026-11-25 | Milestone 2 has the Options and Help menus and the system menu additions; Preferences and help entries greyed until milestones 4 and 5; About works. | Shows the final menu structure early without fake features. |
 | D-066 | 2026-11-25 | User interface texts stay in English until milestone 4 brings the Spanish resource DLL. | Same as milestone 1; avoids translating twice. |
 | D-067 | 2026-11-25 | DESIGN.md gets a "Milestone scope" section listing what each milestone delivers. | Scope was only implicit; it had to be deduced when starting milestone 2. |
+| D-068 | 2026-11-25 | Minimized windows are not drawn as thumbnails in the pager cells; they do appear in the window list. | They are icons, not windows. Confirmed by Juan. |
+| D-069 | 2026-11-25 | About QuadDesk is a standard message box (name, version, copyright, MIT license) for now. **Review pending**, scheduled with milestone 5. | Confirmed by Juan as temporary; a custom dialog with the icon remains an option. |

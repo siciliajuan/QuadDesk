@@ -117,6 +117,12 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   fits; otherwise 16×16 if still legible (on real hardware the reduced icon
   may look rough — if it is not legible, it is not drawn); otherwise an empty
   rectangle. Thumbnails cannot be dragged. [decided]
+- Minimized windows are **not drawn** as thumbnails (they are icons, not
+  windows); they still appear in the window list. [decided — D-068]
+- **About QuadDesk...** is, for now, a standard message box with the name,
+  version, copyright and MIT license. **To be reviewed later** (a custom
+  dialog with the icon is an option). [decided for now — D-069, review
+  pending]
 - **Window list** below the grid:
   - shows the windows of the active desktop; while the mouse is over another
     cell, it shows that desktop's windows instead and goes back to the
@@ -352,6 +358,7 @@ here first. [decided — D-063 to D-067]
   (section 10).
 
 **5 — Help, readme and setup (v0.5)**
+- Review the About box (D-069).
 - WinHelp help in both languages, enabling the greyed help entries and F1.
 - `README.TXT` and `LEAME.TXT`.
 - Setup and uninstaller (section 12).
