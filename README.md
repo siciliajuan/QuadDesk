@@ -50,10 +50,16 @@ kept in the same directory.
 
 ```
 src/        C sources
+docs/       design specification (DESIGN.md) and decision log (DECISIONS.md)
 tests/      manual test guides for each milestone
 build.sh    build script for Linux and macOS
 BUILD.BAT   build script for DOS and Windows
 ```
+
+## Design
+
+The full specification lives in [docs/DESIGN.md](docs/DESIGN.md) and every
+decision, with its reasons, in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Known limitations
 

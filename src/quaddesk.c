@@ -58,6 +58,7 @@ static HWND      g_hwndMain;
 static WINREC    g_win[MAX_WINDOWS];
 static int       g_count   = 0;
 static int       g_current = 0;
+static HWND      g_focus[NUM_DESKS];   /* last active window of each desktop */
 
 /* ------------------------------------------------------------------ */
 /* Window bookkeeping                                                  */
@@ -192,12 +193,26 @@ static void Unpark(WINREC *r)
     r->parked = FALSE;
 }
 
-/* Activates the topmost window of the current desktop, so keyboard input
-   never goes to a window that is off screen. Falls back to Program
-   Manager when the desktop is empty. */
+/* Gives the focus back to the window that was active on the current
+   desktop when the user left it. If that window no longer exists, the
+   topmost window of the desktop is activated instead, and Program Manager
+   when the desktop is empty, so keyboard input never goes to a window that
+   is off screen. */
 static void ActivateTopWindow(void)
 {
-    HWND h;
+    HWND h = g_focus[g_current];
+
+    if (h && IsWindow(h) && IsWindowVisible(h))
+    {
+        WINREC *r = FindRec(h);
+        if (r == NULL)
+            r = FindRec(RootOwner(h));
+        if (r && r->desk == g_current && !r->parked)
+        {
+            SetActiveWindow(h);
+            return;
+        }
+    }
 
     for (h = GetWindow(GetDesktopWindow(), GW_CHILD); h; h = GetWindow(h, GW_HWNDNEXT))
     {
@@ -257,6 +272,14 @@ static void SwitchTo(int desk)
 
     Sync();
     QDSetSwitching(TRUE);
+
+    /* Remember which window had the focus on the desktop we are leaving. */
+    {
+        HWND active = GetActiveWindow();
+        WINREC *r = active ? FindRec(active) : NULL;
+        if (r && r->desk == g_current)
+            g_focus[g_current] = active;
+    }
 
     for (i = 0; i < g_count; i++)
         if (g_win[i].desk == g_current)

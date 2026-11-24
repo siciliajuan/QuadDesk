@@ -34,8 +34,13 @@ PRUEBA 1 - CAMBIAR DE ESCRITORIO
      - Write no debe verse.
   6. Estando en el 1, pulsa Ctrl+Alt+Mayús+Flecha izquierda.
      - No debe pasar nada (no hay escritorio a la izquierda).
-  7. Comprueba que la ventana que queda activa tras cada cambio es una
-     del escritorio nuevo (puedes escribir en ella sin hacer clic).
+  7. Foco: en el escritorio 1, haz clic en la Calculadora para que sea
+     la ventana activa. Vete al 2 y vuelve al 1.
+     - La Calculadora debe volver a ser la ventana activa (no la que
+       esté por encima del resto).
+     - En un escritorio que no has visitado, o si la ventana que tenía
+       el foco ya no existe, debe activarse la ventana de más arriba
+       (o el Administrador de programas si el escritorio está vacío).
 
 
 PRUEBA 2 - MAXIMIZADAS Y MINIMIZADAS
