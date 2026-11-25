@@ -174,7 +174,10 @@ PRUEBA 13 - COLOR DE LA CELDA ACTIVA
 ------------------------------------
   1. Compara la celda activa del pager con la barra de título de una
      ventana activa.
-     - Deben tener exactamente el mismo color (y el texto también).
+     - La etiqueta "Desktop N" debe tener exactamente el mismo color que
+       la barra de título (y el texto también).
+     - El borde de la celda activa es negro y grueso (2 px); el de las
+       demás, negro y fino.
   2. Cambia el esquema de colores en Panel de control > Colores.
      - La celda activa debe cambiar al nuevo color sin reiniciar
        QuadDesk.

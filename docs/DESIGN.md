@@ -111,9 +111,11 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - **System menu** of the pager (and of its icon) adds, after a separator,
   `Preferences...` and `About QuadDesk...`. [decided]
 - **Cells:** label `Desktop N` plus the scaled thumbnail. The active desktop
-  is highlighted with the colours of the active title bar of the user's
-  colour scheme (label and border; label text in the title bar text
-  colour), so it matches the other windows at any colour depth (D-078). Clicking a cell switches to it.
+  is highlighted with a label in the colours of the active title bar of
+  the user's colour scheme (text in the title bar text colour), so it
+  matches the other windows at any colour depth (D-078), and a black 2 px
+  border, so it stands out with any scheme, also light ones (D-080).
+  Inactive cells have a grey label and a black 1 px border. Clicking a cell switches to it.
   [decided]
 - **Window thumbnails** inside each cell: the application icon at 32×32 if it
   fits, otherwise an empty rectangle. 16×16 icons are not drawn in the

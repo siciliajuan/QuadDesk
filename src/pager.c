@@ -64,9 +64,10 @@
 
 #define NAVY        RGB(0, 0, 128)
 
-/* The active cell uses the colours of the active title bar of the user's
-   colour scheme, so it matches every other window at any colour depth
-   (D-078). */
+/* The label of the active cell uses the colours of the active title bar
+   of the user's colour scheme, so it matches every other window at any
+   colour depth (D-078). Its border is black and 2 px thick, so it stands
+   out with any scheme, also light ones (D-080). */
 #define ActiveColour()  GetSysColor(COLOR_ACTIVECAPTION)
 #define CYAN        RGB(0, 255, 255)
 #define GREY        RGB(192, 192, 192)
@@ -539,8 +540,8 @@ static void PaintCell(HDC hdc, int desk)
     FillSolid(hdc, rc.left, rc.top, rc.right, rc.bottom, GREY);
 
     if (active)
-        Frame(hdc, rc.left, rc.top, rc.right, rc.bottom, ActiveColour()),
-        Frame(hdc, rc.left + 1, rc.top + 1, rc.right - 1, rc.bottom - 1, ActiveColour());
+        Frame(hdc, rc.left, rc.top, rc.right, rc.bottom, RGB(0, 0, 0)),
+        Frame(hdc, rc.left + 1, rc.top + 1, rc.right - 1, rc.bottom - 1, RGB(0, 0, 0));
     else
     {
         FillSolid(hdc, rc.left + 2, rc.bottom - 1, rc.right, rc.bottom, DARKGREY);
