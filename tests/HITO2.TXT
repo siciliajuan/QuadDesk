@@ -156,32 +156,6 @@ PRUEBA 11 - ADMINISTRADOR DE PROGRAMAS EN SU CELDA
      - Ahora NO debe dibujarse en la celda 1 (lo minimizaste tú).
 
 
-PRUEBA 14 - ICONO DEL ADMINISTRADOR DE PROGRAMAS DETRÁS
--------------------------------------------------------
-  1. En el escritorio 1, abre el Administrador de archivos ocupando la
-     mitad izquierda de la pantalla y abre el Reloj.
-  2. Pasa al escritorio 2 y abre allí el Administrador de programas
-     (pasa a pertenecer al 2).
-  3. Vuelve al escritorio 1 y cierra el Reloj.
-     - El icono del Administrador de programas debe quedar DETRÁS del
-       Administrador de archivos, y el foco debe pasar al Administrador
-       de archivos.
-  4. Repite cerrando la ventana activa desde la Lista de tareas.
-     - Igual: el icono nunca debe quedar por encima de una ventana.
-  5. Deja una ventana en el escritorio 2, activa. Pasa al 1, abre el
-     Bloc de notas y ciérralo.
-     - QuadDesk NO debe saltar al escritorio 2; el foco pasa a otra
-       ventana del 1 (o al Administrador de programas si no hay).
-  6. Haz un clic en el icono del Administrador de programas.
-     - Debe quedar seleccionado y mostrar su menú, como siempre (un clic
-       tuyo sí cuenta).
-
-  SI FALLA: cierra QuadDesk, ejecuta QDDEBUG.EXE (es igual, pero escribe
-  un registro), repite el paso que falla, cierra QDDEBUG y mándame el
-  archivo QUADDESK.LOG que aparece en su carpeta (o una foto si es
-  corto).
-
-
 PRUEBA 12 - DOBLE CLIC EN LA LISTA
 ----------------------------------
   1. En un escritorio con varias ventanas, haz doble clic en una de la

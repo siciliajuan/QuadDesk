@@ -10,13 +10,10 @@
 
 /* Messages posted by QDHOOK.DLL to the QuadDesk main window */
 #define WM_QD_HOTKEY    (WM_USER + 200)   /* wParam = QD_LEFT..QD_SHOW       */
-#define WM_QD_ACTIVATE  (WM_USER + 201)   /* wParam = window being activated,
-                                             lParam = 1 if by mouse or Alt   */
+#define WM_QD_ACTIVATE  (WM_USER + 201)   /* wParam = window being activated */
 #define WM_QD_CHANGED   (WM_USER + 202)   /* a top-level window was created,
                                              destroyed, minimized, maximized
                                              or restored                     */
-#define WM_QD_CLOSED     (WM_USER + 203)  /* the active window is being
-                                             destroyed; wParam = that window */
 
 /* Directions for WM_QD_HOTKEY */
 #define QD_LEFT   0

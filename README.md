@@ -57,8 +57,7 @@ kept in the same directory.
 src/        C sources
 docs/       design specification (DESIGN.md) and decision log (DECISIONS.md)
 tests/      manual test guides for each milestone
-build.sh    build script for Linux and macOS (also builds QDDEBUG.EXE,
-            a diagnostic version that writes QUADDESK.LOG; not for release)
+build.sh    build script for Linux and macOS
 BUILD.BAT   build script for DOS and Windows
 ```
 

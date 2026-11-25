@@ -42,69 +42,12 @@
 #include "qdhook.h"
 #include "qdcore.h"
 
-/* ---- Diagnostic log (only in QDDEBUG.EXE, built with -dQD_LOG) ----
-   Writes QUADDESK.LOG next to the program: activations, closes and what
-   QuadDesk decides. Never part of a release. */
-#ifdef QD_LOG
-static char g_logPath[144];
-
-static void LogStart(HINSTANCE hInst)
-{
-    OFSTRUCT of;
-    int n = GetModuleFileName(hInst, g_logPath, sizeof(g_logPath) - 16);
-    while (n > 0 && g_logPath[n - 1] != '\\')
-        n--;
-    lstrcpy(g_logPath + n, "QUADDESK.LOG");
-    _lclose(OpenFile(g_logPath, &of, OF_CREATE | OF_WRITE));
-}
-
-static void LogLine(LPCSTR fmt, ...)
-{
-    char buf[256];
-    OFSTRUCT of;
-    HFILE f;
-    int n = wsprintf(buf, "%8lu ", GetTickCount());
-    n += wvsprintf(buf + n, fmt, (LPSTR)(&fmt + 1));
-    buf[n++] = '\r'; buf[n++] = '\n';
-    f = OpenFile(g_logPath, &of, OF_WRITE);
-    if (f != HFILE_ERROR)
-    {
-        _llseek(f, 0L, 2);
-        _lwrite(f, buf, n);
-        _lclose(f);
-    }
-}
-
-static LPSTR WinName(HWND h)
-{
-    static char name[2][72];
-    static int k = 0;
-    char cls[24], title[32];
-    LPSTR out = name[k];
-    k ^= 1;
-    if (h == NULL || !IsWindow(h))
-    {
-        wsprintf(out, "%04X(none)", (UINT)h);
-        return out;
-    }
-    GetClassName(h, cls, sizeof(cls));
-    GetWindowText(h, title, sizeof(title));
-    wsprintf(out, "%04X[%s \"%s\"%s]", (UINT)h, (LPSTR)cls, (LPSTR)title,
-             (LPSTR)(IsIconic(h) ? " icon" : ""));
-    return out;
-}
-#define LOG(args) LogLine args
-#else
-#define LOG(args)
-#endif
 
 #define CLASS_NAME   "QuadDeskMain"
 
 #define MAX_WINDOWS  128
 #define MIN_OFFSET   2000      /* minimum distance hidden windows are moved */
 #define SYNC_TIMER   1
-#define REFOCUS_TIMER 2
-#define REFOCUS_MS   250       /* wait for a closing application (D-087)  */
 #define SYNC_MS      100       /* one timer for everything (D-023, D-043)  */
 
 typedef struct tagWINREC
@@ -133,10 +76,7 @@ static int       g_pmHome  = -1;       /* desktop of open Program Manager    */
 static BOOL      g_pmByUs  = FALSE;    /* QuadDesk minimized Program Manager */
 static BOOL      g_pmExitRestored = FALSE;
 static BOOL      g_ending = FALSE;     /* Windows is shutting down           */
-static HWND      g_wrongActivation;    /* see OnActiveClosed                 */
-static HWND      g_closing;            /* active window being closed         */
 
-static void RefocusSoon(void);
 static int       g_cxScreen;           /* screen width in pixels             */
 static int       g_offset;             /* how far hidden windows are moved   */
 
@@ -200,14 +140,7 @@ static BOOL IsAlwaysVisible(HWND h)
    Windows 3.1 it is a separate window owned by the icon). */
 static BOOL IsManaged(HWND h)
 {
-    char cls[16];
-
     if (!IsWindow(h) || !IsWindowVisible(h))
-        return FALSE;
-    /* Popup menus (#32768) belong to whoever opened them, never to a
-       desktop (D-088). */
-    GetClassName(h, cls, sizeof(cls));
-    if (lstrcmp(cls, "#32768") == 0)
         return FALSE;
     if (IsAlwaysVisible(h))
         return FALSE;
@@ -398,19 +331,6 @@ static void PmTrack(void)
         g_pmHome = -1;                /* minimized by the user */
 }
 
-/* Minimizes Program Manager and sends its icon to the bottom of the Z
-   order, behind every window, like any other icon. Otherwise the icon
-   would stay where the window was (usually on top, since it was active),
-   cover the windows of the other desktops and get the focus when one of
-   them is closed (D-083). */
-static void PmMinimize(HWND pm)
-{
-    ShowWindow(pm, SW_SHOWMINNOACTIVE);
-    SetWindowPos(pm, HWND_BOTTOM, 0, 0, 0, 0,
-                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-    g_pmByUs = TRUE;
-}
-
 /* Leaving the desktop where Program Manager is open: make it an icon. */
 static void PmLeave(void)
 {
@@ -418,8 +338,8 @@ static void PmLeave(void)
 
     if (pm && !IsIconic(pm) && g_pmHome == g_current)
     {
-        LOG(("  Program Manager minimized (leaving desktop %d)", g_current + 1));
-        PmMinimize(pm);
+        ShowWindow(pm, SW_SHOWMINNOACTIVE);
+        g_pmByUs = TRUE;
     }
 }
 
@@ -456,7 +376,10 @@ static void PmUndoExitRestore(void)
     HWND pm = PmWindow();
 
     if (g_pmExitRestored && pm && !IsIconic(pm) && g_pmHome != g_current)
-        PmMinimize(pm);
+    {
+        ShowWindow(pm, SW_SHOWMINNOACTIVE);
+        g_pmByUs = TRUE;
+    }
     g_pmExitRestored = FALSE;
 }
 
@@ -466,26 +389,6 @@ static void PmUndoExitRestore(void)
    (open here or as an icon, which is on every desktop), and QuadDesk as a
    last resort, so keyboard input never goes to a window that is off
    screen. */
-/* A window that can take the focus: not a popup menu (#32768), not the
-   label under an icon (#32772), not disabled (e.g. blocked by its own
-   dialog), and not the window being closed (D-087, D-088). */
-static BOOL CanActivate(HWND h)
-{
-    char cls[16];
-
-    if (h == NULL || h == g_closing || !IsWindow(h) ||
-        !IsWindowVisible(h) || !IsWindowEnabled(h))
-        return FALSE;
-    GetClassName(h, cls, sizeof(cls));
-    return lstrcmp(cls, "#32768") != 0 && lstrcmp(cls, "#32772") != 0;
-}
-
-static void Activate(HWND h)
-{
-    SetActiveWindow(h);
-    LOG(("  activate %s -> active %s", WinName(h), WinName(GetActiveWindow())));
-}
-
 void ActivateTopWindow(void)
 {
     HWND h = g_focus[g_current];
@@ -502,13 +405,12 @@ void ActivateTopWindow(void)
         if (r && r->desk == g_current && !r->parked)
         {
             BringWindowToTop(p);
-            Activate(p);
+            SetActiveWindow(p);
             return;
         }
     }
 
-    /* The window being closed is never chosen (D-087). */
-    if (CanActivate(h))
+    if (h && IsWindow(h) && IsWindowVisible(h))
     {
         WINREC *r = FindRec(h);
         if (r == NULL)
@@ -516,26 +418,23 @@ void ActivateTopWindow(void)
         if ((r && r->desk == g_current && !r->parked) ||
             (h == pm && !IsIconic(pm) && g_pmHome == g_current))
         {
-            Activate(h);
+            SetActiveWindow(h);
             return;
         }
     }
 
     for (h = GetWindow(GetDesktopWindow(), GW_CHILD); h; h = GetWindow(h, GW_HWNDNEXT))
     {
-        WINREC *r;
-        if (!CanActivate(h))
-            continue;
-        r = FindRec(h);
+        WINREC *r = FindRec(h);
         if ((r && r->desk == g_current && !r->parked && !IsIconic(h)) ||
             (h == pm && !IsIconic(h)))
         {
-            Activate(h);
+            SetActiveWindow(h);
             return;
         }
     }
 
-    Activate(pm ? pm : g_hwndMain);
+    SetActiveWindow(pm ? pm : g_hwndMain);
 }
 
 /* Called periodically: a dialog or message box opened by an application
@@ -579,7 +478,6 @@ void SwitchTo(int desk)
 
     if (desk < 0 || desk >= NUM_DESKS || desk == g_current)
         return;
-    LOG(("SWITCH %d -> %d", g_current + 1, desk + 1));
 
     Sync();
     PmTrack();
@@ -632,47 +530,17 @@ static int Neighbour(int desk, int dir)
    go to its desktop. Windows QuadDesk does not know yet, such as a dialog
    that has just been created by an application on a hidden desktop, do
    not trigger a switch: they stay with their application. */
-static void OnActivate(HWND h, BOOL user)
+static void OnActivate(HWND h)
 {
     WINREC *r;
-    HWND pm = PmWindow();
 
     if (!IsWindow(h))
         return;
-    LOG(("ACTIVATE %s user=%d active=%s desk=%d", WinName(h), user,
-         WinName(GetActiveWindow()), g_current + 1));
-
-    /* Program Manager's icon, minimized by QuadDesk, activated by Windows
-       and not by the user (after a window closes Windows gives the focus
-       to the previously active window, sometimes more than once): give the
-       focus to a window of this desktop instead and send the icon back to
-       the bottom (D-085). A click on the icon or Alt+Tab keep working. */
-    if (h == pm && IsIconic(pm) && g_pmByUs && !user && GetActiveWindow() == pm)
-    {
-        LOG(("  -> Program Manager icon activated by Windows: refocus soon"));
-        RefocusSoon();
-        return;
-    }
-    /* Windows activated it only because the active window was closed, and
-       QuadDesk has already chosen another window (see OnActiveClosed). */
-    {
-        HWND wrong = g_wrongActivation;
-        g_wrongActivation = NULL;       /* only the next activation */
-        if (h == wrong)
-        {
-            LOG(("  -> ignored (already refocused after a close)"));
-            return;
-        }
-    }
     r = FindRec(h);
     if (r && GetTickCount() - r->born < NEW_WINDOW_MS)
-    {
-        LOG(("  -> ignored (new window)"));
         return;                 /* just created: Windows activated it */
-    }
     if (r && r->parked && r->desk != g_current)
     {
-        LOG(("  -> jump to desktop %d", r->desk + 1));
         /* The window the user chose gets the focus on arrival, not the
            one that was active when they left that desktop (D-061). */
         g_focus[r->desk] = h;
@@ -773,63 +641,6 @@ BOOL CorePending(int desk)
     return p != NULL && desk != g_current;
 }
 
-/* TRUE if the focus is somewhere it should not be: nowhere, on Program
-   Manager's icon minimized by QuadDesk, on a window parked or belonging to
-   another desktop, or on the window being closed. */
-static BOOL FocusIsWrong(void)
-{
-    HWND a = GetActiveWindow();
-    HWND pm = PmWindow();
-    WINREC *r;
-
-    if (a == NULL || a == g_closing)
-        return TRUE;
-    if (a == pm)
-        return IsIconic(pm) && g_pmByUs;
-    if ((r = FindRec(a)) != NULL)
-        return r->parked || r->desk != g_current;
-    return FALSE;
-}
-
-/* Gives the focus to the right window of the current desktop if it is in
-   a wrong place, and sends Program Manager's icon back to the bottom. */
-static void Refocus(void)
-{
-    HWND pm = PmWindow();
-
-    Sync();
-    LOG(("REFOCUS active %s wrong=%d", WinName(GetActiveWindow()), FocusIsWrong()));
-    if (FocusIsWrong())
-    {
-        QDSetSwitching(TRUE);
-        ActivateTopWindow();
-        QDSetSwitching(FALSE);
-    }
-    if (pm && IsIconic(pm) && g_pmByUs && GetActiveWindow() != pm)
-        SetWindowPos(pm, HWND_BOTTOM, 0, 0, 0, 0,
-                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-    g_closing = NULL;
-}
-
-/* Asks for a Refocus a moment later. While an application is closing,
-   Windows keeps moving the focus (to the previously active window, and
-   again when the application's task ends), so changing it at once does
-   not stick (seen in QUADDESK.LOG on the 486, D-087). */
-static void RefocusSoon(void)
-{
-    SetTimer(g_hwndMain, REFOCUS_TIMER, REFOCUS_MS, NULL);
-}
-
-/* The active window is being closed (D-084, D-087). */
-static void OnActiveClosed(HWND closing)
-{
-    g_closing = closing;
-    LOG(("CLOSED %s active now %s", WinName(closing), WinName(GetActiveWindow())));
-    if (FocusIsWrong())
-        g_wrongActivation = GetActiveWindow();
-    RefocusSoon();
-}
-
 /* Every window back on screen: used on exit and on Windows shutdown. */
 static void UnparkAll(void)
 {
@@ -898,14 +709,6 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
         return 0;
 
     case WM_TIMER:
-        if (wParam == REFOCUS_TIMER)
-        {
-            KillTimer(hwnd, REFOCUS_TIMER);
-            if (!g_ending)
-                Refocus();
-            PagerRefresh();
-            return 0;
-        }
         ParkStrays();
         PagerTick();
         return 0;
@@ -973,14 +776,8 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
         InvalidateRect(hwnd, NULL, TRUE);
         break;
 
-    case WM_QD_CLOSED:
-        if (!g_ending)
-            OnActiveClosed((HWND)wParam);
-        PagerRefresh();
-        return 0;
-
     case WM_QD_ACTIVATE:
-        OnActivate((HWND)wParam, (BOOL)lParam);
+        OnActivate((HWND)wParam);
         return 0;
 
     /* Windows is about to shut down. Many applications save their window
@@ -1011,7 +808,6 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 
     case WM_DESTROY:
         KillTimer(hwnd, SYNC_TIMER);
-        KillTimer(hwnd, REFOCUS_TIMER);
         QDRemove();
         UnparkAll();
         PmRestoreForExit();
@@ -1033,10 +829,6 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     (void)lpszCmdLine;
     g_hInst = hInstance;
-#ifdef QD_LOG
-    LogStart(hInstance);
-    LOG(("QuadDesk " APP_VERSION " diagnostic log"));
-#endif
 
     if (hPrevInstance)
     {

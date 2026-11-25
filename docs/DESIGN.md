@@ -58,9 +58,7 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
     the user minimized it. [decided — D-055]
   - **Open (normal or maximized):** it belongs to the desktop where it is
     open. When the user leaves that desktop, QuadDesk minimizes it, so on
-    every other desktop it appears as an icon. That icon goes to the bottom
-    of the Z order, behind every window, like any other icon. [decided —
-    D-054, D-083]
+    every other desktop it appears as an icon. [decided — D-054]
   - **Back to its desktop without touching the icon:** QuadDesk restores it
     there automatically, normal or maximized as it was. [decided — D-056]
   - **Restoring the icon on another desktop** (double click, Restore in its
@@ -87,26 +85,6 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   its icon, which is on every desktop), and QuadDesk itself as a last
   resort, so keyboard input never goes to an off-screen window.
   [decided — D-036, D-059]
-- **Closing the active window:** Windows gives the focus back to the
-  window that was active before it, which may be Program Manager's icon
-  or a window of another desktop. QuadDesk then chooses the next window of
-  the current desktop with the same rule, and Program Manager's icon goes
-  back to the bottom; that activation never causes a jump. [decided —
-  D-084]
-- Whenever Program Manager's icon (minimized by QuadDesk) is activated by
-  Windows and not by the user (QDHOOK.DLL reports whether the activation
-  came from a mouse click or with Alt held), QuadDesk gives the focus to a
-  window of the current desktop and sends the icon back to the bottom.
-  Clicking the icon or reaching it with Alt+Tab keep working. [decided —
-  D-085]
-- These focus corrections are applied **250 ms later**, never at once:
-  while an application is closing, Windows keeps moving the focus, and the
-  window being closed is never chosen. [decided — D-087]
-- **Popup menus** (class `#32768`) are never managed: never parked, never
-  counted as a window of a desktop, never shown in the pager. When choosing
-  a window to give the focus to, QuadDesk skips anything that cannot take
-  it: popup menus, icon labels (`#32772`) and disabled windows. [decided —
-  D-088]
 
 ## 3. Keyboard
 
@@ -358,6 +336,31 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 
 - "Visible on all desktops" in the extended system menu.
 
+### After v1.0: known issues to revisit
+
+- **Program Manager's icon in front of windows after closing one**
+  (D-089). Scenario: File Manager and Clock open on desktop 1; open
+  Program Manager on desktop 2 (it now belongs to 2); go back to desktop 1
+  and close Clock. Program Manager's icon ends up active and drawn in
+  front of File Manager. Findings from QUADDESK.LOG on the 486, to start
+  from when this is picked up:
+  - Windows 3.1 gives the focus to the *previously active* window when
+    the active one is closed (not the next one in Z order); here that is
+    Program Manager, active on desktop 2 just before switching back.
+  - When QuadDesk minimizes Program Manager with SW_SHOWMINNOACTIVE, the
+    icon keeps the window's place in the Z order (usually the top).
+  - Correcting the focus at once does not stick while the application is
+    still closing; Windows moves the focus again.
+  - QuadDesk registers popup menu windows (class `#32768`) as desktop
+    windows: a focus fallback chose Clock's system menu, which cannot take
+    the focus. This also means menus can be parked; worth fixing on its
+    own.
+  - The attempted fixes (D-083 to D-088: icon to the bottom, refocus after
+    a close, user-initiated flag in QDHOOK.DLL, 250 ms delay, skipping
+    menus) and the QDDEBUG.EXE diagnostic build were reverted to keep the
+    tested behaviour; the code is kept outside the repository for
+    reference.
+
 ## 14. Delivery and repository
 
 - Built with **Open Watcom C 2.0** (`build.sh`, `BUILD.BAT`). [decided]
@@ -423,6 +426,9 @@ here first. [decided — D-063 to D-067]
 - Setup and uninstaller (section 12).
 
 **v1.0** — everything above, tested together on the 486.
+
+**After v1.0** — the known issues listed in section 13 ("After v1.0: known
+issues to revisit").
 
 ## 16. Implementation status
 
