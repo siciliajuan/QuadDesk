@@ -58,7 +58,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
     the user minimized it. [decided — D-055]
   - **Open (normal or maximized):** it belongs to the desktop where it is
     open. When the user leaves that desktop, QuadDesk minimizes it, so on
-    every other desktop it appears as an icon. [decided — D-054]
+    every other desktop it appears as an icon. That icon goes to the bottom
+    of the Z order, behind every window, like any other icon. [decided —
+    D-054, D-083]
   - **Back to its desktop without touching the icon:** QuadDesk restores it
     there automatically, normal or maximized as it was. [decided — D-056]
   - **Restoring the icon on another desktop** (double click, Restore in its

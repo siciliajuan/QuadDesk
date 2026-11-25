@@ -329,16 +329,26 @@ static void PmTrack(void)
         g_pmHome = -1;                /* minimized by the user */
 }
 
+/* Minimizes Program Manager and sends its icon to the bottom of the Z
+   order, behind every window, like any other icon. Otherwise the icon
+   would stay where the window was (usually on top, since it was active),
+   cover the windows of the other desktops and get the focus when one of
+   them is closed (D-083). */
+static void PmMinimize(HWND pm)
+{
+    ShowWindow(pm, SW_SHOWMINNOACTIVE);
+    SetWindowPos(pm, HWND_BOTTOM, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    g_pmByUs = TRUE;
+}
+
 /* Leaving the desktop where Program Manager is open: make it an icon. */
 static void PmLeave(void)
 {
     HWND pm = PmWindow();
 
     if (pm && !IsIconic(pm) && g_pmHome == g_current)
-    {
-        ShowWindow(pm, SW_SHOWMINNOACTIVE);
-        g_pmByUs = TRUE;
-    }
+        PmMinimize(pm);
 }
 
 /* Arriving at Program Manager's desktop: open it again if QuadDesk
@@ -374,10 +384,7 @@ static void PmUndoExitRestore(void)
     HWND pm = PmWindow();
 
     if (g_pmExitRestored && pm && !IsIconic(pm) && g_pmHome != g_current)
-    {
-        ShowWindow(pm, SW_SHOWMINNOACTIVE);
-        g_pmByUs = TRUE;
-    }
+        PmMinimize(pm);
     g_pmExitRestored = FALSE;
 }
 
