@@ -102,6 +102,11 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - These focus corrections are applied **250 ms later**, never at once:
   while an application is closing, Windows keeps moving the focus, and the
   window being closed is never chosen. [decided — D-087]
+- **Popup menus** (class `#32768`) are never managed: never parked, never
+  counted as a window of a desktop, never shown in the pager. When choosing
+  a window to give the focus to, QuadDesk skips anything that cannot take
+  it: popup menus, icon labels (`#32772`) and disabled windows. [decided —
+  D-088]
 
 ## 3. Keyboard
 

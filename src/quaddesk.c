@@ -200,7 +200,14 @@ static BOOL IsAlwaysVisible(HWND h)
    Windows 3.1 it is a separate window owned by the icon). */
 static BOOL IsManaged(HWND h)
 {
+    char cls[16];
+
     if (!IsWindow(h) || !IsWindowVisible(h))
+        return FALSE;
+    /* Popup menus (#32768) belong to whoever opened them, never to a
+       desktop (D-088). */
+    GetClassName(h, cls, sizeof(cls));
+    if (lstrcmp(cls, "#32768") == 0)
         return FALSE;
     if (IsAlwaysVisible(h))
         return FALSE;
@@ -459,6 +466,20 @@ static void PmUndoExitRestore(void)
    (open here or as an icon, which is on every desktop), and QuadDesk as a
    last resort, so keyboard input never goes to a window that is off
    screen. */
+/* A window that can take the focus: not a popup menu (#32768), not the
+   label under an icon (#32772), not disabled (e.g. blocked by its own
+   dialog), and not the window being closed (D-087, D-088). */
+static BOOL CanActivate(HWND h)
+{
+    char cls[16];
+
+    if (h == NULL || h == g_closing || !IsWindow(h) ||
+        !IsWindowVisible(h) || !IsWindowEnabled(h))
+        return FALSE;
+    GetClassName(h, cls, sizeof(cls));
+    return lstrcmp(cls, "#32768") != 0 && lstrcmp(cls, "#32772") != 0;
+}
+
 static void Activate(HWND h)
 {
     SetActiveWindow(h);
@@ -487,7 +508,7 @@ void ActivateTopWindow(void)
     }
 
     /* The window being closed is never chosen (D-087). */
-    if (h && h != g_closing && IsWindow(h) && IsWindowVisible(h))
+    if (CanActivate(h))
     {
         WINREC *r = FindRec(h);
         if (r == NULL)
@@ -503,7 +524,7 @@ void ActivateTopWindow(void)
     for (h = GetWindow(GetDesktopWindow(), GW_CHILD); h; h = GetWindow(h, GW_HWNDNEXT))
     {
         WINREC *r;
-        if (h == g_closing)
+        if (!CanActivate(h))
             continue;
         r = FindRec(h);
         if ((r && r->desk == g_current && !r->parked && !IsIconic(h)) ||
