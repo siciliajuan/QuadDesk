@@ -16,7 +16,7 @@
                                              destroyed, minimized, maximized
                                              or restored                     */
 #define WM_QD_CLOSED     (WM_USER + 203)  /* the active window is being
-                                             destroyed                        */
+                                             destroyed; wParam = that window */
 
 /* Directions for WM_QD_HOTKEY */
 #define QD_LEFT   0

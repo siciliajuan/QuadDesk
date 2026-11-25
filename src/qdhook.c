@@ -100,7 +100,7 @@ LRESULT CALLBACK _export CbtProc(int nCode, WPARAM wParam, LPARAM lParam)
                back to the previously active window, which may belong to
                another desktop: QuadDesk checks it afterwards. */
             if ((HWND)wParam == GetActiveWindow() && !g_switching)
-                PostMessage(g_hwndMain, WM_QD_CLOSED, 0, 0L);
+                PostMessage(g_hwndMain, WM_QD_CLOSED, wParam, 0L);
             /* fall through */
         case HCBT_MINMAX:
             if ((HWND)wParam != g_hwndMain && IsTopLevel((HWND)wParam))

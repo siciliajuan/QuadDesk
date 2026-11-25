@@ -99,6 +99,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   window of the current desktop and sends the icon back to the bottom.
   Clicking the icon or reaching it with Alt+Tab keep working. [decided —
   D-085]
+- These focus corrections are applied **250 ms later**, never at once:
+  while an application is closing, Windows keeps moving the focus, and the
+  window being closed is never chosen. [decided — D-087]
 
 ## 3. Keyboard
 
