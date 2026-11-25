@@ -172,6 +172,14 @@ PRUEBA 14 - ICONO DEL ADMINISTRADOR DE PROGRAMAS DETRÁS
      Bloc de notas y ciérralo.
      - QuadDesk NO debe saltar al escritorio 2; el foco pasa a otra
        ventana del 1 (o al Administrador de programas si no hay).
+  6. Haz un clic en el icono del Administrador de programas.
+     - Debe quedar seleccionado y mostrar su menú, como siempre (un clic
+       tuyo sí cuenta).
+
+  SI FALLA: cierra QuadDesk, ejecuta QDDEBUG.EXE (es igual, pero escribe
+  un registro), repite el paso que falla, cierra QDDEBUG y mándame el
+  archivo QUADDESK.LOG que aparece en su carpeta (o una foto si es
+  corto).
 
 
 PRUEBA 12 - DOBLE CLIC EN LA LISTA

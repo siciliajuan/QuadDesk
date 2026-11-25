@@ -30,4 +30,9 @@ wcc $CFLAGS -fo=pager.obj ../src/pager.c
 wlink op q system windows file quaddesk.obj file pager.obj library qdhook.lib \
       name quaddesk.exe option stack=8k option heapsize=4k
 
-echo "Done: $OUT/quaddesk.exe and $OUT/qdhook.dll"
+echo "Building QDDEBUG.EXE (diagnostic build, writes QUADDESK.LOG; not for release)"
+wcc $CFLAGS -dQD_LOG -fo=qddebug.obj ../src/quaddesk.c
+wlink op q system windows file qddebug.obj file pager.obj library qdhook.lib \
+      name qddebug.exe option stack=8k option heapsize=4k
+
+echo "Done: $OUT/quaddesk.exe, $OUT/qdhook.dll and $OUT/qddebug.exe"

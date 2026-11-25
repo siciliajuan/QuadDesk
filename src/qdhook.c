@@ -81,7 +81,13 @@ LRESULT CALLBACK _export CbtProc(int nCode, WPARAM wParam, LPARAM lParam)
         {
         case HCBT_ACTIVATE:
             if (!g_switching)
-                PostMessage(g_hwndMain, WM_QD_ACTIVATE, wParam, 0L);
+            {
+                /* lParam = 1 if the user asked for it: a mouse click
+                   (Windows says so) or with Alt held (Alt+Tab, Alt+Esc). */
+                BOOL user = ((CBTACTIVATESTRUCT FAR *)lParam)->fMouse ||
+                            (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+                PostMessage(g_hwndMain, WM_QD_ACTIVATE, wParam, (LPARAM)user);
+            }
             break;
 
         case HCBT_CREATEWND:

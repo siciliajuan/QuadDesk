@@ -93,6 +93,12 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   the current desktop with the same rule, and Program Manager's icon goes
   back to the bottom; that activation never causes a jump. [decided —
   D-084]
+- Whenever Program Manager's icon (minimized by QuadDesk) is activated by
+  Windows and not by the user (QDHOOK.DLL reports whether the activation
+  came from a mouse click or with Alt held), QuadDesk gives the focus to a
+  window of the current desktop and sends the icon back to the bottom.
+  Clicking the icon or reaching it with Alt+Tab keep working. [decided —
+  D-085]
 
 ## 3. Keyboard
 
