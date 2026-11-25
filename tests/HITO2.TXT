@@ -84,9 +84,11 @@ PRUEBA 4 - LISTA DE VENTANAS
      - Se ven 5 y aparece la barra de desplazamiento.
   4. Minimiza una ventana.
      - Debe seguir en la lista, sin ninguna marca especial.
-  5. Minimiza el Administrador de programas.
-     - Debe aparecer en la lista de todos los escritorios (su icono
-       está en todos).
+  5. Con el Administrador de programas abierto en el escritorio activo,
+     pasa el ratón por las otras celdas.
+     - Debe aparecer en la lista de todos los escritorios.
+  6. Minimízalo y repite.
+     - También debe aparecer en todas las listas.
 
 
 PRUEBA 5 - MOSTRAR Y OCULTAR (Ctrl+Alt+Mayús+Espacio)

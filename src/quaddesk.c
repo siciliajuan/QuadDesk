@@ -561,14 +561,14 @@ int CoreWindows(int desk, HWND *out, int max, BOOL forList)
 
         if (h == pm)
         {
-            /* Open: on its desktop. As an icon: on every desktop, so it is
-               listed everywhere. If QuadDesk minimized it on leaving its
-               desktop, for the user it is still open there, so that cell
-               keeps drawing it as a window (D-076). */
-            if (!IsIconic(pm))
-                take = (g_pmHome == desk);
-            else if (forList)
+            /* Program Manager is present on every desktop (a window on its
+               own, an icon on the others), so it is in every list (D-082).
+               As a thumbnail it is only drawn in its own desktop's cell,
+               also while QuadDesk keeps it minimized (D-076). */
+            if (forList)
                 take = TRUE;
+            else if (!IsIconic(pm))
+                take = (g_pmHome == desk);
             else
                 take = (g_pmByUs && g_pmHome == desk);
         }

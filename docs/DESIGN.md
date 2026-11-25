@@ -150,6 +150,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
     it first; [decided]
   - the header shows a counter: `Windows on desktop N (X):`; [decided]
   - minimized windows appear like any other, with no extra mark. [decided]
+  - Program Manager appears in the list of **every** desktop, open or
+    minimized, because it is always present on all of them (a window on
+    its own desktop, an icon on the others). [decided — D-082]
   - **double click** on a window works like Switch To in the Task List:
     the window gets the focus (or its active dialog, if it has one), and a
     minimized window is restored first. Program Manager as an icon is
