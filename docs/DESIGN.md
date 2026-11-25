@@ -126,7 +126,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - **Window list** below the grid:
   - shows the windows of the active desktop; while the mouse is over another
     cell, it shows that desktop's windows instead and goes back to the
-    active desktop when the mouse leaves; [decided]
+    active desktop when the mouse leaves the grid (in the gaps between
+    cells the last cell's list is kept, so it does not flash); [decided —
+    D-071]
   - fixed height for **5 items**, with a vertical scrollbar if there are
     more; to scroll the list of another desktop the user has to switch to
     it first; [decided]
@@ -179,7 +181,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   Task List: Windows activates the application before closing it, so
   QuadDesk goes to its desktop, where the user sees its "save changes?"
   question. This is accepted as correct behaviour (D-048). This is the technical consequence
-  of the previous rule (D-020). [decided — implemented in milestone 1]
+  of the previous rule (D-020). Implemented as: the activation of a window
+  QuadDesk found less than 1.5 s ago never causes a jump. [decided — D-039,
+  D-070]
 - **System-modal** message boxes and system errors (GPF, drive not ready…)
   always appear on the current desktop. [decided]
 - **Dialogs without owner** (class `#32770`, for example a `MessageBox`

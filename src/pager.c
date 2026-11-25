@@ -82,6 +82,8 @@ static int     g_blinkTicks = 0;
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
 
+static int CellAt(int x, int y);
+
 void PagerOuterSize(int *w, int *h)
 {
     RECT rc;
@@ -107,6 +109,18 @@ static void ThumbRect(int desk, RECT *rc)
     rc->top   += 2 + LABEL_H;
     rc->right  = rc->left + CELL_W;
     rc->bottom = rc->top + CELL_H;
+}
+
+/* Cell to show in the list for a mouse position. In the gaps between
+   cells the last cell is kept, so moving from one cell to another does
+   not flash the active desktop's list in between (D-071). */
+static int HoverAt(int x, int y)
+{
+    int cell = CellAt(x, y);
+    if (cell < 0 && g_hover >= 0 &&
+        x >= MARGIN && x < CLIENT_W - MARGIN && y >= MARGIN && y < GRID_BOTTOM)
+        cell = g_hover;
+    return cell;
 }
 
 static int CellAt(int x, int y)
@@ -325,7 +339,7 @@ void PagerTick(void)
         else
         {
             ScreenToClient(g_hwndMain, &pt);
-            g_hover = CellAt(pt.x, pt.y);
+            g_hover = HoverAt(pt.x, pt.y);
         }
     }
 
@@ -511,7 +525,7 @@ void PagerPaint(HWND hwnd)
 
 void PagerMouseMove(int x, int y)
 {
-    int cell = CellAt(x, y);
+    int cell = HoverAt(x, y);
     if (cell != g_hover)
     {
         g_hover = cell;

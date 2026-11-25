@@ -55,7 +55,13 @@ typedef struct tagWINREC
     int  desk;      /* 0..3                                  */
     BOOL parked;    /* TRUE while moved off screen           */
     int  x, y;      /* on-screen position while parked       */
+    DWORD born;     /* GetTickCount() when QuadDesk found it */
 } WINREC;
+
+/* Windows activates a window when it is created. During this time after
+   QuadDesk finds a new window, its activation is not a reason to jump to
+   its desktop (D-039, D-070). */
+#define NEW_WINDOW_MS  1500
 
 HINSTANCE        g_hInst;
 HWND             g_hwndMain;
@@ -156,6 +162,7 @@ static WINREC *AddRec(HWND h, int desk)
     r->desk   = desk;
     r->parked = FALSE;
     r->x = r->y = 0;
+    r->born   = GetTickCount();
     return r;
 }
 
@@ -518,6 +525,8 @@ static void OnActivate(HWND h)
     if (!IsWindow(h))
         return;
     r = FindRec(h);
+    if (r && GetTickCount() - r->born < NEW_WINDOW_MS)
+        return;                 /* just created: Windows activated it */
     if (r && r->parked && r->desk != g_current)
     {
         /* The window the user chose gets the focus on arrival, not the
