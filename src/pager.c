@@ -75,7 +75,8 @@ static int     g_hover   = -1;          /* cell under the mouse, or -1 */
 static int     g_listDesk = -1;         /* desktop shown in the list    */
 static HWND    g_listWnd[MAX_LIST];
 static int     g_listCount = 0;
-static DWORD   g_signature = 0;         /* of everything that is drawn  */
+static DWORD   g_gridSig = 0;           /* of what the grid/icon shows  */
+static DWORD   g_listSig = 0;           /* of what the list shows       */
 static BOOL    g_blinkOn = FALSE;
 static int     g_blinkTicks = 0;
 
@@ -307,7 +308,9 @@ static void UpdateList(void)
     for (i = 0; i < n; i++)
         SendMessage(g_hwndList, LB_ADDSTRING, 0, (LPARAM)(DWORD)(WORD)wins[i]);
     SendMessage(g_hwndList, WM_SETREDRAW, TRUE, 0L);
-    InvalidateRect(g_hwndList, NULL, TRUE);
+    /* Items paint their whole row, so the background only needs erasing
+       when there are fewer rows than before. */
+    InvalidateRect(g_hwndList, NULL, n < g_listCount);
 
     memcpy(g_listWnd, wins, n * sizeof(HWND));
     g_listCount = n;
@@ -349,9 +352,14 @@ void PagerDrawItem(DRAWITEMSTRUCT FAR *dis)
 /* ------------------------------------------------------------------ */
 /* Change detection                                                    */
 
-/* A signature of everything the pager or the live icon shows. When it
-   does not change, nothing is repainted. */
-static DWORD ComputeSignature(void)
+/* Two signatures, so that each part is repainted only when what it shows
+   changed (D-075):
+   - the grid (and the live icon): desktops, window positions, blinking;
+   - the list and its header: which desktop is listed (the hovered cell),
+     its windows and their titles.
+   Moving the mouse over the cells only changes the list signature, so the
+   cells are never repainted for that. */
+static DWORD GridSignature(void)
 {
     HWND wins[MAX_LIST];
     DWORD sig = 0;
@@ -359,7 +367,6 @@ static DWORD ComputeSignature(void)
     int d, i, n;
 
     sig = Mix(sig, (DWORD)g_current);
-    sig = Mix(sig, (DWORD)(g_hover + 1));
     sig = Mix(sig, (DWORD)IsIconic(g_hwndMain));
     for (d = 0; d < NUM_DESKS; d++)
     {
@@ -378,7 +385,16 @@ static DWORD ComputeSignature(void)
         }
         sig = Mix(sig, 0xFFFFUL);
     }
+    return sig;
+}
 
+static DWORD ListSignature(void)
+{
+    HWND wins[MAX_LIST];
+    DWORD sig = 0;
+    int i, n;
+
+    sig = Mix(sig, (DWORD)ListDesk());
     n = CoreWindows(ListDesk(), wins, MAX_LIST, TRUE);
     for (i = 0; i < n; i++)
     {
@@ -390,24 +406,37 @@ static DWORD ComputeSignature(void)
 
 void PagerRefresh(void)
 {
-    DWORD sig;
+    DWORD grid, list;
     RECT rc;
 
     if (g_hwndMain == NULL)
         return;
-    sig = ComputeSignature();
-    if (sig == g_signature)
-        return;
-    g_signature = sig;
+    grid = GridSignature();
 
     if (IsIconic(g_hwndMain))
     {
-        InvalidateRect(g_hwndMain, NULL, TRUE);
+        if (grid != g_gridSig)
+            InvalidateRect(g_hwndMain, NULL, TRUE);
+        g_gridSig = grid;
+        g_listSig = 0;          /* refill the list when restored */
         return;
     }
-    SetRect(&rc, 0, 0, CLIENT_W, LIST_Y);
-    InvalidateRect(g_hwndMain, &rc, FALSE);
-    UpdateList();
+
+    if (grid != g_gridSig)
+    {
+        SetRect(&rc, 0, 0, CLIENT_W, GRID_BOTTOM);
+        InvalidateRect(g_hwndMain, &rc, FALSE);
+        g_gridSig = grid;
+    }
+
+    list = ListSignature();
+    if (list != g_listSig)
+    {
+        UpdateList();
+        SetRect(&rc, 0, GRID_BOTTOM, CLIENT_W, LIST_Y);
+        InvalidateRect(g_hwndMain, &rc, FALSE);
+        g_listSig = list;
+    }
 }
 
 void PagerTick(void)
@@ -563,7 +592,7 @@ void PagerPaint(HWND hwnd)
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(hwnd, &ps);
     char text[48];
-    RECT rc;
+    RECT rc, tmp;
     HFONT old;
     int i;
 
@@ -574,19 +603,26 @@ void PagerPaint(HWND hwnd)
         return;
     }
 
-    /* Grid area background (painted here because the grid is invalidated
-       without erasing, to avoid flicker). */
-    FillSolid(hdc, 0, 0, CLIENT_W, LIST_Y, GREY);
-    for (i = 0; i < NUM_DESKS; i++)
-        PaintCell(hdc, i);
+    /* Grid: painted only if it is part of the area to repaint. It is
+       invalidated without erasing, to avoid flicker. */
+    SetRect(&rc, 0, 0, CLIENT_W, GRID_BOTTOM);
+    if (IntersectRect(&tmp, &rc, &ps.rcPaint))
+    {
+        FillSolid(hdc, 0, 0, CLIENT_W, GRID_BOTTOM, GREY);
+        for (i = 0; i < NUM_DESKS; i++)
+            PaintCell(hdc, i);
+    }
 
-    /* List header */
+    /* List header, drawn with an opaque background in one go so the text
+       never disappears while it changes. */
     wsprintf(text, "Windows on desktop %d (%d):", ListDesk() + 1, g_listCount);
     old = SelectObject(hdc, g_fontBold);
-    SetBkMode(hdc, TRANSPARENT);
+    SetBkMode(hdc, OPAQUE);
+    SetBkColor(hdc, GREY);
     SetTextColor(hdc, RGB(0, 0, 0));
-    SetRect(&rc, MARGIN, HEADER_Y, CLIENT_W - MARGIN, HEADER_Y + HEADER_H);
-    DrawText(hdc, text, -1, &rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    SetRect(&rc, 0, GRID_BOTTOM, CLIENT_W, LIST_Y);
+    ExtTextOut(hdc, MARGIN, HEADER_Y + 1, ETO_OPAQUE, &rc, text, lstrlen(text), NULL);
+    SetBkMode(hdc, TRANSPARENT);
 
     /* Status bar: a sunken panel with the shortcut hint */
     SetRect(&rc, MARGIN, STATUS_Y, CLIENT_W - MARGIN, STATUS_Y + STATUS_H);

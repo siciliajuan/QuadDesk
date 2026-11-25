@@ -145,7 +145,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - **Refresh:** WH_CBT events (create, destroy, minimize, maximize) plus a
   100 ms timer for moves and resizes that only repaints when something
   changed. This single 100 ms timer also checks for new dialogs (milestone 1
-  uses a temporary 500 ms timer). [decided]
+  uses a temporary 500 ms timer). The grid and the list are tracked
+  separately: hovering over the cells only repaints the list and its
+  header, never the cells. [decided — D-075]
 
 ## 5. Moving windows between desktops
 
