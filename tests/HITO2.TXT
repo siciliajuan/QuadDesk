@@ -168,6 +168,10 @@ PRUEBA 14 - ICONO DEL ADMINISTRADOR DE PROGRAMAS DETRÁS
        de archivos.
   4. Repite cerrando la ventana activa desde la Lista de tareas.
      - Igual: el icono nunca debe quedar por encima de una ventana.
+  5. Deja una ventana en el escritorio 2, activa. Pasa al 1, abre el
+     Bloc de notas y ciérralo.
+     - QuadDesk NO debe saltar al escritorio 2; el foco pasa a otra
+       ventana del 1 (o al Administrador de programas si no hay).
 
 
 PRUEBA 12 - DOBLE CLIC EN LA LISTA

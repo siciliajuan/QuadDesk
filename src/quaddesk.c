@@ -75,6 +75,7 @@ static int       g_pmHome  = -1;       /* desktop of open Program Manager    */
 static BOOL      g_pmByUs  = FALSE;    /* QuadDesk minimized Program Manager */
 static BOOL      g_pmExitRestored = FALSE;
 static BOOL      g_ending = FALSE;     /* Windows is shutting down           */
+static HWND      g_wrongActivation;    /* see OnActiveClosed                 */
 static int       g_cxScreen;           /* screen width in pixels             */
 static int       g_offset;             /* how far hidden windows are moved   */
 
@@ -541,6 +542,14 @@ static void OnActivate(HWND h)
 
     if (!IsWindow(h))
         return;
+    /* Windows activated it only because the active window was closed, and
+       QuadDesk has already chosen another window (see OnActiveClosed). */
+    {
+        HWND wrong = g_wrongActivation;
+        g_wrongActivation = NULL;       /* only the next activation */
+        if (h == wrong)
+            return;
+    }
     r = FindRec(h);
     if (r && GetTickCount() - r->born < NEW_WINDOW_MS)
         return;                 /* just created: Windows activated it */
@@ -644,6 +653,38 @@ BOOL CorePending(int desk)
     if (p && (!IsWindow(p) || !IsWindowVisible(p)))
         g_pending[desk] = p = NULL;
     return p != NULL && desk != g_current;
+}
+
+/* The active window was closed. Windows gives the focus to the window that
+   was active before it, which may be Program Manager's icon or a window
+   parked on another desktop. In that case QuadDesk chooses the next window
+   of the current desktop instead, with the same rule as after a switch,
+   and sends Program Manager's icon back to the bottom (D-084). */
+static void OnActiveClosed(void)
+{
+    HWND a = GetActiveWindow();
+    HWND pm = PmWindow();
+    WINREC *r;
+    BOOL wrong = FALSE;
+
+    Sync();
+    if (a == NULL)
+        wrong = TRUE;
+    else if (a == pm)
+        wrong = IsIconic(pm) && g_pmByUs;
+    else if ((r = FindRec(a)) != NULL)
+        wrong = r->parked || r->desk != g_current;
+
+    if (wrong)
+    {
+        g_wrongActivation = a;
+        QDSetSwitching(TRUE);
+        ActivateTopWindow();
+        QDSetSwitching(FALSE);
+    }
+    if (pm && IsIconic(pm) && g_pmByUs && GetActiveWindow() != pm)
+        SetWindowPos(pm, HWND_BOTTOM, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
 /* Every window back on screen: used on exit and on Windows shutdown. */
@@ -780,6 +821,12 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
         PagerRefresh();
         InvalidateRect(hwnd, NULL, TRUE);
         break;
+
+    case WM_QD_CLOSED:
+        if (!g_ending)
+            OnActiveClosed();
+        PagerRefresh();
+        return 0;
 
     case WM_QD_ACTIVATE:
         OnActivate((HWND)wParam);

@@ -14,6 +14,8 @@
 #define WM_QD_CHANGED   (WM_USER + 202)   /* a top-level window was created,
                                              destroyed, minimized, maximized
                                              or restored                     */
+#define WM_QD_CLOSED     (WM_USER + 203)  /* the active window is being
+                                             destroyed                        */
 
 /* Directions for WM_QD_HOTKEY */
 #define QD_LEFT   0

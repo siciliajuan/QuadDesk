@@ -87,6 +87,12 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   its icon, which is on every desktop), and QuadDesk itself as a last
   resort, so keyboard input never goes to an off-screen window.
   [decided — D-036, D-059]
+- **Closing the active window:** Windows gives the focus back to the
+  window that was active before it, which may be Program Manager's icon
+  or a window of another desktop. QuadDesk then chooses the next window of
+  the current desktop with the same rule, and Program Manager's icon goes
+  back to the bottom; that activation never causes a jump. [decided —
+  D-084]
 
 ## 3. Keyboard
 
