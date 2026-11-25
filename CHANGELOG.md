@@ -12,6 +12,10 @@
 - Live icon when minimized: the 2×2 grid with the active desktop.
 - Desktops with a pending dialog blink in the pager and in the live icon.
 - Ctrl+Alt+Shift+Space shows or hides the pager.
+- Double click on a window in the list gives it the focus (restoring it if
+  it is minimized), like Switch To in the Task List.
+- Program Manager minimized by QuadDesk is still drawn in its desktop's
+  cell.
 - One 100 ms timer plus CBT events; repaints only when something changed.
 
 ## v0.1 - Milestone 1: core (2026-11-24)

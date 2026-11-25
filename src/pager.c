@@ -692,8 +692,35 @@ static void About(void)
                "About " APP_NAME, MB_OK | MB_ICONINFORMATION);
 }
 
-BOOL PagerCommand(WPARAM id)
+/* Double click in the window list: like Switch To in the Task List
+   (D-077). A minimized window is restored; the focus goes to the window,
+   or to its active dialog if it has one. A single click does nothing. */
+static void ListDoubleClick(void)
 {
+    int i = (int)SendMessage(g_hwndList, LB_GETCURSEL, 0, 0L);
+    HWND h;
+
+    if (i < 0)
+        return;
+    h = (HWND)LOWORD(SendMessage(g_hwndList, LB_GETITEMDATA, i, 0L));
+    if (!IsWindow(h))
+        return;
+    if (IsIconic(h))
+        ShowWindow(h, SW_RESTORE);
+    h = GetLastActivePopup(h);
+    BringWindowToTop(h);
+    SetActiveWindow(h);
+}
+
+BOOL PagerCommand(WPARAM id, LPARAM lParam)
+{
+    if (id == ID_LIST)
+    {
+        if (HIWORD(lParam) == LBN_DBLCLK)
+            ListDoubleClick();
+        return TRUE;
+    }
+
     switch (id)
     {
     case IDM_ABOUT:
@@ -756,7 +783,7 @@ BOOL PagerCreate(HWND hwnd)
     ReleaseDC(hwnd, hdc);
 
     g_hwndList = CreateWindow("LISTBOX", "",
-                              WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL |
+                              WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL | LBS_NOTIFY |
                               LBS_OWNERDRAWFIXED | LBS_NOINTEGRALHEIGHT,  /* items are drawn unselected: the list is informative */
                               MARGIN, LIST_Y, CLIENT_W - 2 * MARGIN, LIST_H,
                               hwnd, (HMENU)ID_LIST, g_hInst, NULL);

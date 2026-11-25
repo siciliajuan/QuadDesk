@@ -49,7 +49,7 @@ void    PagerTick(void);               /* every 100 ms: hover and blinking  */
 void    PagerPaint(HWND hwnd);
 void    PagerMouseMove(int x, int y);
 void    PagerClick(int x, int y);
-BOOL    PagerCommand(WPARAM id);       /* menu and system menu commands     */
+BOOL    PagerCommand(WPARAM id, LPARAM lParam); /* menus and the list     */
 void    PagerToggle(void);             /* Ctrl+Alt+Shift+Space              */
 void    PagerMeasureItem(MEASUREITEMSTRUCT FAR *mis);
 void    PagerDrawItem(DRAWITEMSTRUCT FAR *dis);

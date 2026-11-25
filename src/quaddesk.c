@@ -562,11 +562,15 @@ int CoreWindows(int desk, HWND *out, int max, BOOL forList)
         if (h == pm)
         {
             /* Open: on its desktop. As an icon: on every desktop, so it is
-               listed everywhere but never drawn as a thumbnail. */
+               listed everywhere. If QuadDesk minimized it on leaving its
+               desktop, for the user it is still open there, so that cell
+               keeps drawing it as a window (D-076). */
             if (!IsIconic(pm))
                 take = (g_pmHome == desk);
+            else if (forList)
+                take = TRUE;
             else
-                take = forList;
+                take = (g_pmByUs && g_pmHome == desk);
         }
         else
         {
@@ -591,8 +595,24 @@ int CoreWindows(int desk, HWND *out, int max, BOOL forList)
 
 void CoreWindowRect(HWND h, RECT *rc)
 {
-    WINREC *r = FindRec(h);
+    WINREC *r;
 
+    /* Program Manager minimized by QuadDesk: the rectangle it will have
+       when it is restored on its desktop. */
+    if (h == PmWindow() && IsIconic(h) && g_pmByUs)
+    {
+        WINDOWPLACEMENT wp;
+        wp.length = sizeof(wp);
+        GetWindowPlacement(h, &wp);
+        if (wp.flags & WPF_RESTORETOMAXIMIZED)
+            SetRect(rc, 0, 0, GetSystemMetrics(SM_CXSCREEN),
+                    GetSystemMetrics(SM_CYSCREEN));
+        else
+            *rc = wp.rcNormalPosition;
+        return;
+    }
+
+    r = FindRec(h);
     GetWindowRect(h, rc);
     if (r && r->parked)
         OffsetRect(rc, r->x - rc->left, r->y - rc->top);
@@ -720,12 +740,12 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
         return TRUE;
 
     case WM_COMMAND:
-        if (PagerCommand(wParam))
+        if (PagerCommand(wParam, lParam))
             return 0;
         break;
 
     case WM_SYSCOMMAND:
-        if (PagerCommand(wParam))
+        if (PagerCommand(wParam, 0L))
             return 0;
         if ((wParam & 0xFFF0) == SC_MINIMIZE)
         {

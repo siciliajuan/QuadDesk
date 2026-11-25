@@ -123,6 +123,10 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   the list becomes text only. [decided — D-072]
 - Minimized windows are **not drawn** as thumbnails (they are icons, not
   windows); they still appear in the window list. [decided — D-068]
+- Exception: Program Manager minimized **by QuadDesk** on leaving its
+  desktop is still drawn as a window in that desktop's cell, at the size
+  and position it will have when restored (full cell if maximized), because
+  for the user it is still open there. [decided — D-076]
 - **About QuadDesk...** is, for now, a standard message box with the name,
   version, copyright and MIT license. **To be reviewed later** (a custom
   dialog with the icon is an option). [decided for now — D-069, review
@@ -138,6 +142,13 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
     it first; [decided]
   - the header shows a counter: `Windows on desktop N (X):`; [decided]
   - minimized windows appear like any other, with no extra mark. [decided]
+  - **double click** on a window works like Switch To in the Task List:
+    the window gets the focus (or its active dialog, if it has one), and a
+    minimized window is restored first. Program Manager as an icon is
+    restored on the current desktop and now belongs to it (as in D-057).
+    A single click does nothing and no row is shown as selected. It only
+    applies to the active desktop's list, because the list goes back to
+    the active desktop when the mouse leaves the cells. [decided — D-077]
 - **Status bar:** only the shortcut hint (`Ctrl+Alt+Shift+Arrows`, localized).
   [decided]
 - The pager is **not always on top**; it can be covered by other windows.

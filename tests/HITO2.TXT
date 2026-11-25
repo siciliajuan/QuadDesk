@@ -141,6 +141,35 @@ PRUEBA 9 - LO DEL HITO 1 SIGUE FUNCIONANDO
   programas).
 
 
+PRUEBA 11 - ADMINISTRADOR DE PROGRAMAS EN SU CELDA
+--------------------------------------------------
+  1. Con el Administrador de programas abierto (ventana normal) en el
+     escritorio 1, pasa al 2.
+     - En la celda 1 del pager debe seguir viéndose su ventana, en su
+       sitio y con su tamaño, aunque en la pantalla sea un icono.
+  2. Vuelve al 1, maximízalo y pasa al 2.
+     - En la celda 1 debe ocupar toda la celda.
+  3. Minimízalo tú en el 1 y pasa al 2.
+     - Ahora NO debe dibujarse en la celda 1 (lo minimizaste tú).
+
+
+PRUEBA 12 - DOBLE CLIC EN LA LISTA
+----------------------------------
+  1. En un escritorio con varias ventanas, haz doble clic en una de la
+     lista que no sea la activa.
+     - Esa ventana pasa delante y queda activa.
+  2. Minimiza una ventana y haz doble clic en ella en la lista.
+     - Se restaura y queda activa.
+  3. Con el Administrador de programas como icono (abierto en otro
+     escritorio), haz doble clic en él en la lista.
+     - Se abre en el escritorio actual y desde ahora pertenece a este.
+  4. Haz un solo clic en una ventana de la lista.
+     - No pasa nada y ninguna fila se marca.
+  5. Abre el diálogo Archivo > Abrir del Bloc de notas, activa otra
+     ventana y haz doble clic en el Bloc de notas en la lista.
+     - Debe quedar activo el diálogo, no la ventana bloqueada.
+
+
 PRUEBA 10 - VOLVER A ABRIR UNA APLICACIÓN DE OTRO ESCRITORIO
 ------------------------------------------------------------
   Usa una aplicación que, al abrirla por segunda vez, activa la ventana
