@@ -73,7 +73,7 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - Windows marked "always on top" by their application stay on their own
   desktop like any other window. [decided]
 - Minimized applications (icons) belong to their desktop and only appear
-  there. [decided]
+  there. [decided — reconfirmed in D-074]
 - **Focus:** if a dialog appeared on a desktop while the user was away, it
   gets the focus (and comes to the front) when the user arrives there, so
   it is the first thing they see; this takes precedence over the rule
@@ -114,9 +114,13 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   is highlighted (navy label and border). Clicking a cell switches to it.
   [decided]
 - **Window thumbnails** inside each cell: the application icon at 32×32 if it
-  fits; otherwise 16×16 if still legible (on real hardware the reduced icon
-  may look rough — if it is not legible, it is not drawn); otherwise an empty
-  rectangle. Thumbnails cannot be dragged. [decided]
+  fits, otherwise an empty rectangle. 16×16 icons are not drawn in the
+  thumbnails: tested on the 486, they are not legible. Thumbnails cannot be
+  dragged. [validated — D-072]
+- **Icons in the window list** are 16×16, shrunk from the 32×32 icon by
+  keeping, for each 2×2 block, the colour that appears most (the darkest on
+  a tie), so outlines survive. If they are still not legible on the 486,
+  the list becomes text only. [decided — D-072]
 - Minimized windows are **not drawn** as thumbnails (they are icons, not
   windows); they still appear in the window list. [decided — D-068]
 - **About QuadDesk...** is, for now, a standard message box with the name,
@@ -198,6 +202,10 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - **Cascade, Tile and Arrange Icons** (Task List) bring every window on
   screen: QuadDesk moves those windows to the current desktop. This doubles
   as an emergency recovery and is documented in the help and the README.
+  Not to be confused with **restoring a parked icon** (for example, opening
+  again from Program Manager an application minimized on another desktop):
+  it keeps its desktop and the user is taken there, exactly as when the
+  application's window is open (D-073).
   Minimized windows are not touched by Cascade or Tile; this includes
   Program Manager while it is an icon on other desktops (D-054), which
   stays as it is. [decided — D-062]

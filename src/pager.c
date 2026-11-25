@@ -168,14 +168,99 @@ static HICON WindowIcon(HWND h)
     return hi ? hi : LoadIcon(NULL, IDI_APPLICATION);
 }
 
-/* Windows 3.1 only draws icons at 32x32: draw it on a 32x32 bitmap with
-   the given background and shrink it to 16x16. */
-static void DrawIcon16(HDC hdc, int x, int y, HICON hi, COLORREF bg)
+/* ---- 16x16 icons for the window list (D-072) ----
+   Windows 3.1 only draws icons at 32x32, and StretchBlt drops every other
+   pixel, which loses the outlines. Instead, each 2x2 block of the 32x32
+   icon becomes the colour that appears most in it; on a tie, the darkest
+   one, so outlines survive. The result is computed once per icon and kept
+   in a small cache (emptied whenever the list changes). */
+
+#define ICON_CACHE 24
+
+static HICON   g_cacheIcon[ICON_CACHE];
+static HBITMAP g_cacheBmp[ICON_CACHE];
+static int     g_cacheCount = 0;
+
+static void ClearIconCache(void)
 {
-    FillSolid(g_memDC, 0, 0, 32, 32, bg);
+    int i;
+    for (i = 0; i < g_cacheCount; i++)
+        DeleteObject(g_cacheBmp[i]);
+    g_cacheCount = 0;
+}
+
+static long Darkness(COLORREF c)
+{
+    return 255L * 100 - (GetRValue(c) * 30L + GetGValue(c) * 59L + GetBValue(c) * 11L);
+}
+
+static HBITMAP ShrinkIcon(HICON hi)
+{
+    HDC dst;
+    HBITMAP bmp, old;
+    int bx, by, i, j;
+
+    FillSolid(g_memDC, 0, 0, 32, 32, RGB(255, 255, 255));
     DrawIcon(g_memDC, 0, 0, hi);
-    SetStretchBltMode(hdc, COLORONCOLOR);
-    StretchBlt(hdc, x, y, 16, 16, g_memDC, 0, 0, 32, 32, SRCCOPY);
+
+    dst = CreateCompatibleDC(g_memDC);
+    bmp = CreateCompatibleBitmap(g_memDC, 16, 16);
+    old = SelectObject(dst, bmp);
+    for (by = 0; by < 16; by++)
+        for (bx = 0; bx < 16; bx++)
+        {
+            COLORREF c[4], best;
+            int bestCount = 0;
+
+            c[0] = GetPixel(g_memDC, bx * 2,     by * 2);
+            c[1] = GetPixel(g_memDC, bx * 2 + 1, by * 2);
+            c[2] = GetPixel(g_memDC, bx * 2,     by * 2 + 1);
+            c[3] = GetPixel(g_memDC, bx * 2 + 1, by * 2 + 1);
+            best = c[0];
+            for (i = 0; i < 4; i++)
+            {
+                int count = 0;
+                for (j = 0; j < 4; j++)
+                    if (c[j] == c[i])
+                        count++;
+                if (count > bestCount ||
+                    (count == bestCount && Darkness(c[i]) > Darkness(best)))
+                {
+                    best = c[i];
+                    bestCount = count;
+                }
+            }
+            SetPixel(dst, bx, by, best);
+        }
+    SelectObject(dst, old);
+    DeleteDC(dst);
+    return bmp;
+}
+
+static void DrawIcon16(HDC hdc, int x, int y, HICON hi)
+{
+    HBITMAP bmp = NULL;
+    HDC src;
+    HBITMAP old;
+    int i;
+
+    for (i = 0; i < g_cacheCount; i++)
+        if (g_cacheIcon[i] == hi)
+            bmp = g_cacheBmp[i];
+    if (bmp == NULL)
+    {
+        bmp = ShrinkIcon(hi);
+        if (g_cacheCount == ICON_CACHE)
+            ClearIconCache();
+        g_cacheIcon[g_cacheCount] = hi;
+        g_cacheBmp[g_cacheCount]  = bmp;
+        g_cacheCount++;
+    }
+    src = CreateCompatibleDC(hdc);
+    old = SelectObject(src, bmp);
+    BitBlt(hdc, x, y, 16, 16, src, 0, 0, SRCCOPY);
+    SelectObject(src, old);
+    DeleteDC(src);
 }
 
 static DWORD Mix(DWORD sig, DWORD v)
@@ -216,6 +301,7 @@ static void UpdateList(void)
         return;
     }
 
+    ClearIconCache();           /* icon handles of closed windows may be reused */
     SendMessage(g_hwndList, WM_SETREDRAW, FALSE, 0L);
     SendMessage(g_hwndList, LB_RESETCONTENT, 0, 0L);
     for (i = 0; i < n; i++)
@@ -248,7 +334,7 @@ void PagerDrawItem(DRAWITEMSTRUCT FAR *dis)
     h = (HWND)LOWORD(dis->itemData);
     if (!IsWindow(h))
         return;
-    DrawIcon16(dis->hDC, rc.left + 4, rc.top + 1, WindowIcon(h), RGB(255, 255, 255));
+    DrawIcon16(dis->hDC, rc.left + 4, rc.top + 1, WindowIcon(h));
 
     title[0] = 0;
     GetWindowText(h, title, sizeof(title));
@@ -381,7 +467,7 @@ static void PaintThumbnails(HDC hdc, int desk, const RECT *tr)
     for (i = n - 1; i >= 0; i--)
     {
         RECT rc;
-        int l, t, w, h, size;
+        int l, t, w, h;
 
         CoreWindowRect(wins[i], &rc);
         l = tr->left + (int)((long)rc.left * CELL_W / cx);
@@ -395,12 +481,10 @@ static void PaintThumbnails(HDC hdc, int desk, const RECT *tr)
         Frame(hdc, l, t, l + w, t + h, RGB(0, 0, 0));
         FillSolid(hdc, l + 1, t + 1, l + w - 1, t + 4, DARKGREY);  /* title bar */
 
-        size = (w >= 34 && h >= 35) ? 32 : ((w >= 18 && h >= 19) ? 16 : 0);
-        if (size == 32)
+        /* The icon at 32x32 if it fits; otherwise the empty rectangle.
+           16x16 icons are not legible on real hardware (D-072). */
+        if (w >= 34 && h >= 35)
             DrawIcon(hdc, l + (w - 32) / 2, t + 1 + (h - 32) / 2, WindowIcon(wins[i]));
-        else if (size == 16)
-            DrawIcon16(hdc, l + (w - 16) / 2, t + 1 + (h - 16) / 2,
-                       WindowIcon(wins[i]), RGB(255, 255, 255));
     }
 
     SelectClipRgn(hdc, NULL);
@@ -645,6 +729,7 @@ BOOL PagerCreate(HWND hwnd)
 
 void PagerDestroy(void)
 {
+    ClearIconCache();
     if (g_memDC)
     {
         SelectObject(g_memDC, g_memOld);

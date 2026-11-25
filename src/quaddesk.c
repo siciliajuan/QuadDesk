@@ -56,6 +56,7 @@ typedef struct tagWINREC
     BOOL parked;    /* TRUE while moved off screen           */
     int  x, y;      /* on-screen position while parked       */
     DWORD born;     /* GetTickCount() when QuadDesk found it */
+    BOOL iconic;    /* it was minimized when it was parked   */
 } WINREC;
 
 /* Windows activates a window when it is created. During this time after
@@ -162,6 +163,7 @@ static WINREC *AddRec(HWND h, int desk)
     r->desk   = desk;
     r->parked = FALSE;
     r->x = r->y = 0;
+    r->iconic = FALSE;
     r->born   = GetTickCount();
     return r;
 }
@@ -236,7 +238,14 @@ static void Sync(void)
             if (!IsOffScreen(&rc))            /* back on screen */
             {
                 r->parked = FALSE;
-                r->desk   = g_current;
+                /* A parked icon that was restored (for example by opening
+                   the application again from Program Manager) opens at its
+                   normal position, on screen. It keeps its desktop; the
+                   activation that follows takes the user there, as with
+                   an open window (D-073). Anything else that came back on
+                   screen was Cascade, Tile or Arrange Icons (D-025). */
+                if (!(r->iconic && !IsIconic(r->hwnd)))
+                    r->desk = g_current;
             }
         }
     }
@@ -262,6 +271,7 @@ static void Park(WINREC *r)
     GetWindowRect(r->hwnd, &rc);
     r->x = rc.left;
     r->y = rc.top;
+    r->iconic = IsIconic(r->hwnd);
     SetWindowPos(r->hwnd, NULL, rc.left + g_offset, rc.top, 0, 0,
                  SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
     r->parked = TRUE;
