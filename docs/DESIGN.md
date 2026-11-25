@@ -360,6 +360,19 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
     menus) and the QDDEBUG.EXE diagnostic build were reverted to keep the
     tested behaviour; the code is kept outside the repository for
     reference.
+- **Blinking repaints every cell** (D-090). While a dialog is pending, the
+  blink repaints the whole grid every 500 ms, so all cells flicker, not
+  just the one with the pending dialog. Idea: invalidate only the blinking
+  cell's thumbnail.
+- **Program Manager handling is not fully reliable** (D-090). Its position
+  in the Z order changes in some situations, and it is sometimes not drawn
+  correctly in the pager cells. Related to the first item of this list.
+- **Minimized applications on every desktop** (D-090). Juan wants to
+  reconsider D-074: show the icons of minimized applications on every
+  desktop instead of only on their own. Until then, D-074 stays.
+
+These are accepted for v1.0 and must not be forgotten: each one has to be
+prepared properly (scenario, expected behaviour, design) before coding.
 
 ## 14. Delivery and repository
 
