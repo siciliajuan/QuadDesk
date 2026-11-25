@@ -49,7 +49,8 @@ PRUEBA 2 - MINIATURAS
   2. Mueve y cambia de tamaño el Bloc de notas.
      - Su miniatura debe seguirlo casi al instante.
   3. Maximiza el Bloc de notas.
-     - Su miniatura debe ocupar toda la celda.
+     - Su miniatura debe ocupar toda la celda, sin la franja gris de
+       arriba (no debe parecer una sombra bajo "Desktop N").
   4. Minimiza la Calculadora.
      - Su miniatura desaparece (los iconos no se dibujan en las
        celdas), pero sigue en la lista.

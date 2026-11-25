@@ -618,6 +618,18 @@ void CoreWindowRect(HWND h, RECT *rc)
         OffsetRect(rc, r->x - rc->left, r->y - rc->top);
 }
 
+BOOL CoreIsMaximized(HWND h)
+{
+    if (h == PmWindow() && IsIconic(h) && g_pmByUs)
+    {
+        WINDOWPLACEMENT wp;
+        wp.length = sizeof(wp);
+        GetWindowPlacement(h, &wp);
+        return (wp.flags & WPF_RESTORETOMAXIMIZED) != 0;
+    }
+    return IsZoomed(h);
+}
+
 BOOL CorePending(int desk)
 {
     HWND p = g_pending[desk];

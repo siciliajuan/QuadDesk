@@ -517,7 +517,10 @@ static void PaintThumbnails(HDC hdc, int desk, const RECT *tr)
 
         FillSolid(hdc, l, t, l + w, t + h, RGB(255, 255, 255));
         Frame(hdc, l, t, l + w, t + h, RGB(0, 0, 0));
-        FillSolid(hdc, l + 1, t + 1, l + w - 1, t + 4, DARKGREY);  /* title bar */
+        /* Title bar, except for maximized windows: under the cell label
+           it would look like a shadow (D-081). */
+        if (!CoreIsMaximized(wins[i]))
+            FillSolid(hdc, l + 1, t + 1, l + w - 1, t + 4, DARKGREY);
 
         /* The icon at 32x32 if it fits; otherwise the empty rectangle.
            16x16 icons are not legible on real hardware (D-072). */

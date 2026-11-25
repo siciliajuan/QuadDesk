@@ -125,6 +125,10 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   keeping, for each 2×2 block, the colour that appears most (the darkest on
   a tie), so outlines survive. If they are still not legible on the 486,
   the list becomes text only. [decided — D-072]
+- Each thumbnail is a white rectangle with a black border and a grey strip
+  that imitates the title bar; **maximized** windows are drawn without that
+  strip, because under the cell label it looked like a shadow. [decided —
+  D-081]
 - Minimized windows are **not drawn** as thumbnails (they are icons, not
   windows); they still appear in the window list. [decided — D-068]
 - Exception: Program Manager minimized **by QuadDesk** on leaving its

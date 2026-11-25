@@ -34,6 +34,10 @@ int  CoreWindows(int desk, HWND *out, int max, BOOL forList);
 /* On-screen rectangle of a window, also while it is parked. */
 void CoreWindowRect(HWND h, RECT *rc);
 
+/* TRUE if the window is maximized, or is Program Manager minimized by
+   QuadDesk and will come back maximized. */
+BOOL CoreIsMaximized(HWND h);
+
 /* TRUE if a dialog appeared on that desktop while the user was away. */
 BOOL CorePending(int desk);
 
