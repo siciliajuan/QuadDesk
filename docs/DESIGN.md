@@ -111,7 +111,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - **System menu** of the pager (and of its icon) adds, after a separator,
   `Preferences...` and `About QuadDesk...`. [decided]
 - **Cells:** label `Desktop N` plus the scaled thumbnail. The active desktop
-  is highlighted (navy label and border). Clicking a cell switches to it.
+  is highlighted with the colours of the active title bar of the user's
+  colour scheme (label and border; label text in the title bar text
+  colour), so it matches the other windows at any colour depth (D-078). Clicking a cell switches to it.
   [decided]
 - **Window thumbnails** inside each cell: the application icon at 32×32 if it
   fits, otherwise an empty rectangle. 16×16 icons are not drawn in the
@@ -226,7 +228,8 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 ## 7. Minimizing and the live icon
 
 - When minimized, QuadDesk shows a **live icon**: a 2×2 grid with the active
-  desktop in navy. A desktop with a pending dialog blinks (inverted colours,
+  desktop in navy (fixed colours, like every Windows 3.1 icon; it does not
+  follow the colour scheme — D-079). A desktop with a pending dialog blinks (inverted colours,
   every 500 ms). The icon label is just `QuadDesk`, with no desktop number.
   [decided]
 - Option **Show icon** (Preferences, "When minimized"): when off, minimizing

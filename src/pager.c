@@ -63,6 +63,11 @@
 #define BLINK_TICKS     5       /* 5 x 100 ms = 500 ms */
 
 #define NAVY        RGB(0, 0, 128)
+
+/* The active cell uses the colours of the active title bar of the user's
+   colour scheme, so it matches every other window at any colour depth
+   (D-078). */
+#define ActiveColour()  GetSysColor(COLOR_ACTIVECAPTION)
 #define CYAN        RGB(0, 255, 255)
 #define GREY        RGB(192, 192, 192)
 #define DARKGREY    RGB(128, 128, 128)
@@ -368,6 +373,9 @@ static DWORD GridSignature(void)
 
     sig = Mix(sig, (DWORD)g_current);
     sig = Mix(sig, (DWORD)IsIconic(g_hwndMain));
+    sig = Mix(sig, GetSysColor(COLOR_ACTIVECAPTION));      /* scheme changed */
+    sig = Mix(sig, GetSysColor(COLOR_CAPTIONTEXT));
+    sig = Mix(sig, GetSysColor(COLOR_BACKGROUND));
     for (d = 0; d < NUM_DESKS; d++)
     {
         BOOL pend = CorePending(d);
@@ -531,8 +539,8 @@ static void PaintCell(HDC hdc, int desk)
     FillSolid(hdc, rc.left, rc.top, rc.right, rc.bottom, GREY);
 
     if (active)
-        Frame(hdc, rc.left, rc.top, rc.right, rc.bottom, NAVY),
-        Frame(hdc, rc.left + 1, rc.top + 1, rc.right - 1, rc.bottom - 1, NAVY);
+        Frame(hdc, rc.left, rc.top, rc.right, rc.bottom, ActiveColour()),
+        Frame(hdc, rc.left + 1, rc.top + 1, rc.right - 1, rc.bottom - 1, ActiveColour());
     else
     {
         FillSolid(hdc, rc.left + 2, rc.bottom - 1, rc.right, rc.bottom, DARKGREY);
@@ -542,12 +550,12 @@ static void PaintCell(HDC hdc, int desk)
 
     /* Label strip */
     SetRect(&lr, rc.left + 2, rc.top + 2, rc.left + 2 + CELL_W, rc.top + 2 + LABEL_H);
-    FillSolid(hdc, lr.left, lr.top, lr.right, lr.bottom - 1, active ? NAVY : GREY);
+    FillSolid(hdc, lr.left, lr.top, lr.right, lr.bottom - 1, active ? ActiveColour() : GREY);
     FillSolid(hdc, lr.left, lr.bottom - 1, lr.right, lr.bottom, RGB(0, 0, 0));
     wsprintf(text, "Desktop %d", desk + 1);
     old = SelectObject(hdc, g_fontBold);
     SetBkMode(hdc, TRANSPARENT);
-    SetTextColor(hdc, active ? RGB(255, 255, 255) : RGB(0, 0, 0));
+    SetTextColor(hdc, active ? GetSysColor(COLOR_CAPTIONTEXT) : RGB(0, 0, 0));
     lr.left += 4;
     lr.bottom -= 1;
     DrawText(hdc, text, -1, &lr, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);

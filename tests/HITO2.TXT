@@ -170,6 +170,16 @@ PRUEBA 12 - DOBLE CLIC EN LA LISTA
      - Debe quedar activo el diálogo, no la ventana bloqueada.
 
 
+PRUEBA 13 - COLOR DE LA CELDA ACTIVA
+------------------------------------
+  1. Compara la celda activa del pager con la barra de título de una
+     ventana activa.
+     - Deben tener exactamente el mismo color (y el texto también).
+  2. Cambia el esquema de colores en Panel de control > Colores.
+     - La celda activa debe cambiar al nuevo color sin reiniciar
+       QuadDesk.
+
+
 PRUEBA 10 - VOLVER A ABRIR UNA APLICACIÓN DE OTRO ESCRITORIO
 ------------------------------------------------------------
   Usa una aplicación que, al abrirla por segunda vez, activa la ventana
