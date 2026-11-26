@@ -70,6 +70,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
     because Program Manager saves its state on exit and would otherwise
     start minimized next time. If the shutdown is cancelled, it is
     minimized again. [decided — D-058]
+- **Popup menus** (class `#32768`) are never managed: never parked, never
+  counted as a window of a desktop, never shown in the pager and never
+  chosen to receive the focus. [decided — D-091]
 - Windows marked "always on top" by their application stay on their own
   desktop like any other window. [decided]
 - Minimized applications (icons) belong to their desktop and only appear
@@ -134,7 +137,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - Exception: Program Manager minimized **by QuadDesk** on leaving its
   desktop is still drawn as a window in that desktop's cell, at the size
   and position it will have when restored (full cell if maximized), because
-  for the user it is still open there. [decided — D-076]
+  for the user it is still open there. [decided — D-076] It keeps the depth
+  it had among that desktop's windows when it was minimized, even if its
+  icon later moves in the Z order. [decided — D-093]
 - **About QuadDesk...** is, for now, a standard message box with the name,
   version, copyright and MIT license. **To be reviewed later** (a custom
   dialog with the icon is an option). [decided for now — D-069, review
@@ -169,7 +174,8 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   changed. This single 100 ms timer also checks for new dialogs (milestone 1
   uses a temporary 500 ms timer). The grid and the list are tracked
   separately: hovering over the cells only repaints the list and its
-  header, never the cells. [decided — D-075]
+  header, never the cells. [decided — D-075] The blinking of pending
+  dialogs only repaints the blinking cells. [decided — D-092]
 
 ## 5. Moving windows between desktops
 
@@ -351,22 +357,21 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
     icon keeps the window's place in the Z order (usually the top).
   - Correcting the focus at once does not stick while the application is
     still closing; Windows moves the focus again.
-  - QuadDesk registers popup menu windows (class `#32768`) as desktop
+  - QuadDesk registered popup menu windows (class `#32768`) as desktop
     windows: a focus fallback chose Clock's system menu, which cannot take
-    the focus. This also means menus can be parked; worth fixing on its
-    own.
+    the focus. Fixed on its own before v1.0 (D-091).
   - The attempted fixes (D-083 to D-088: icon to the bottom, refocus after
     a close, user-initiated flag in QDHOOK.DLL, 250 ms delay, skipping
     menus) and the QDDEBUG.EXE diagnostic build were reverted to keep the
     tested behaviour; the code is kept outside the repository for
     reference.
-- **Blinking repaints every cell** (D-090). While a dialog is pending, the
-  blink repaints the whole grid every 500 ms, so all cells flicker, not
-  just the one with the pending dialog. Idea: invalidate only the blinking
-  cell's thumbnail.
+- ~~**Blinking repaints every cell**~~ (D-090) — fixed before v1.0
+  (D-092): only the blinking cells are repainted.
 - **Program Manager handling is not fully reliable** (D-090). Its position
-  in the Z order changes in some situations, and it is sometimes not drawn
-  correctly in the pager cells. Related to the first item of this list.
+  in the Z order changes in some situations, and it is sometimes drawn
+  wrongly in the pager cells. Related to the first item of this list.
+  One case fixed before v1.0 (D-093): drawn above windows that were on
+  top of it in its cell after switching to an empty desktop.
 - **Minimized applications on every desktop** (D-090). Juan wants to
   reconsider D-074: show the icons of minimized applications on every
   desktop instead of only on their own. Until then, D-074 stays.

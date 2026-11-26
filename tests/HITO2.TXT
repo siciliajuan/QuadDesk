@@ -126,6 +126,8 @@ PRUEBA 7 - PARPADEO DE AVISOS
   3. Vuelve al escritorio 1.
      - El parpadeo se acaba y el aviso queda delante y activo.
   4. Repite con "Diálogo con propietaria": lo mismo.
+  5. Mientras parpadea una celda, mira las demás.
+     - Solo debe parpadear la celda del aviso; las otras, quietas.
 
 
 PRUEBA 8 - RENDIMIENTO
@@ -154,6 +156,25 @@ PRUEBA 11 - ADMINISTRADOR DE PROGRAMAS EN SU CELDA
      - En la celda 1 debe ocupar toda la celda.
   3. Minimízalo tú en el 1 y pasa al 2.
      - Ahora NO debe dibujarse en la celda 1 (lo minimizaste tú).
+  4. En un escritorio, abre el Administrador de programas y pon el Bloc
+     de notas ENCIMA de él. Pasa a un escritorio vacío.
+     - En la celda de antes, el Bloc de notas debe seguir dibujado
+       encima del Administrador de programas.
+
+
+PRUEBA 14 - MENÚS DESPLEGABLES
+------------------------------
+  1. Abre el menú Archivo del Bloc de notas y, con el menú abierto,
+     pulsa Ctrl+Alt+Mayús+Flecha derecha. Vuelve al escritorio de antes.
+     - Los menús deben seguir funcionando normalmente, en el Bloc de
+       notas y en cualquier otra aplicación.
+  2. Abre y cierra varios menús (de aplicaciones y de sistema) y mira
+     el pager.
+     - Los menús no deben aparecer nunca como ventanas, ni en las
+       celdas ni en la lista.
+  3. Cierra una aplicación desde su menú de sistema (por ejemplo, el
+     Reloj) y cambia de escritorio varias veces.
+     - Todo debe funcionar como siempre.
 
 
 PRUEBA 12 - DOBLE CLIC EN LA LISTA

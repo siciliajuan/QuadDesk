@@ -83,6 +83,8 @@ static HWND    g_listWnd[MAX_LIST];
 static int     g_listCount = 0;
 static DWORD   g_gridSig = 0;           /* of what the grid/icon shows  */
 static DWORD   g_listSig = 0;           /* of what the list shows       */
+static DWORD   g_blinkSig = 0;          /* of the blinking cells        */
+static int     g_blinkMask = 0;         /* cells blinking at last paint */
 static BOOL    g_blinkOn = FALSE;
 static int     g_blinkTicks = 0;
 
@@ -379,11 +381,6 @@ static DWORD GridSignature(void)
     sig = Mix(sig, GetSysColor(COLOR_BACKGROUND));
     for (d = 0; d < NUM_DESKS; d++)
     {
-        BOOL pend = CorePending(d);
-        sig = Mix(sig, (DWORD)pend);
-        if (pend)
-            sig = Mix(sig, (DWORD)g_blinkOn);
-
         n = CoreWindows(d, wins, MAX_LIST, FALSE);
         for (i = 0; i < n; i++)
         {
@@ -393,6 +390,23 @@ static DWORD GridSignature(void)
             sig = Mix(sig, ((DWORD)(WORD)rc.right << 16) | (WORD)rc.bottom);
         }
         sig = Mix(sig, 0xFFFFUL);
+    }
+    return sig;
+}
+
+/* Which cells blink and their current phase. When only this changes,
+   only the blinking cells' thumbnails are repainted (D-092). */
+static DWORD BlinkSignature(void)
+{
+    DWORD sig = 0;
+    int d;
+
+    for (d = 0; d < NUM_DESKS; d++)
+    {
+        BOOL pend = CorePending(d);
+        sig = Mix(sig, (DWORD)pend);
+        if (pend)
+            sig = Mix(sig, (DWORD)g_blinkOn);
     }
     return sig;
 }
@@ -415,19 +429,22 @@ static DWORD ListSignature(void)
 
 void PagerRefresh(void)
 {
-    DWORD grid, list;
+    DWORD grid, blink, list;
     RECT rc;
+    int d;
 
     if (g_hwndMain == NULL)
         return;
-    grid = GridSignature();
+    grid  = GridSignature();
+    blink = BlinkSignature();
 
     if (IsIconic(g_hwndMain))
     {
-        if (grid != g_gridSig)
+        if (grid != g_gridSig || blink != g_blinkSig)
             InvalidateRect(g_hwndMain, NULL, TRUE);
-        g_gridSig = grid;
-        g_listSig = 0;          /* refill the list when restored */
+        g_gridSig  = grid;
+        g_blinkSig = blink;
+        g_listSig  = 0;         /* refill the list when restored */
         return;
     }
 
@@ -435,7 +452,30 @@ void PagerRefresh(void)
     {
         SetRect(&rc, 0, 0, CLIENT_W, GRID_BOTTOM);
         InvalidateRect(g_hwndMain, &rc, FALSE);
-        g_gridSig = grid;
+        g_gridSig  = grid;
+        g_blinkSig = blink;
+        g_blinkMask = 0;
+        for (d = 0; d < NUM_DESKS; d++)
+            if (CorePending(d))
+                g_blinkMask |= 1 << d;
+    }
+    else if (blink != g_blinkSig)
+    {
+        /* Only the blinking: repaint just those thumbnails, not the
+           other cells (D-092). A cell that stops blinking is repainted
+           too, so it never stays inverted. */
+        int mask = 0;
+        for (d = 0; d < NUM_DESKS; d++)
+            if (CorePending(d))
+                mask |= 1 << d;
+        for (d = 0; d < NUM_DESKS; d++)
+            if ((mask | g_blinkMask) & (1 << d))
+            {
+                ThumbRect(d, &rc);
+                InvalidateRect(g_hwndMain, &rc, FALSE);
+            }
+        g_blinkMask = mask;
+        g_blinkSig  = blink;
     }
 
     list = ListSignature();
@@ -620,9 +660,22 @@ void PagerPaint(HWND hwnd)
     SetRect(&rc, 0, 0, CLIENT_W, GRID_BOTTOM);
     if (IntersectRect(&tmp, &rc, &ps.rcPaint))
     {
-        FillSolid(hdc, 0, 0, CLIENT_W, GRID_BOTTOM, GREY);
+        /* Grey background around the cells only, then only the cells that
+           need repainting, so the others never flicker (D-092). */
+        SaveDC(hdc);
         for (i = 0; i < NUM_DESKS; i++)
-            PaintCell(hdc, i);
+        {
+            CellRect(i, &rc);
+            ExcludeClipRect(hdc, rc.left, rc.top, rc.right, rc.bottom);
+        }
+        FillSolid(hdc, 0, 0, CLIENT_W, GRID_BOTTOM, GREY);
+        RestoreDC(hdc, -1);
+        for (i = 0; i < NUM_DESKS; i++)
+        {
+            CellRect(i, &rc);
+            if (IntersectRect(&tmp, &rc, &ps.rcPaint))
+                PaintCell(hdc, i);
+        }
     }
 
     /* List header, drawn with an opaque background in one go so the text

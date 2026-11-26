@@ -75,6 +75,8 @@ static HWND      g_pending[NUM_DESKS]; /* dialog that appeared while away    */
 static int       g_pmHome  = -1;       /* desktop of open Program Manager    */
 static BOOL      g_pmByUs  = FALSE;    /* QuadDesk minimized Program Manager */
 static BOOL      g_pmExitRestored = FALSE;
+static int       g_pmZ = 0;            /* its place among its desktop's
+                                          windows when QuadDesk minimized it */
 static BOOL      g_ending = FALSE;     /* Windows is shutting down           */
 
 static int       g_cxScreen;           /* screen width in pixels             */
@@ -140,7 +142,15 @@ static BOOL IsAlwaysVisible(HWND h)
    Windows 3.1 it is a separate window owned by the icon). */
 static BOOL IsManaged(HWND h)
 {
+    char cls[16];
+
     if (!IsWindow(h) || !IsWindowVisible(h))
+        return FALSE;
+    /* Popup menus (#32768) belong to whoever opened them, never to a
+       desktop: never parked, never in the pager, never given the focus
+       (D-091). */
+    GetClassName(h, cls, sizeof(cls));
+    if (lstrcmp(cls, "#32768") == 0)
         return FALSE;
     if (IsAlwaysVisible(h))
         return FALSE;
@@ -338,6 +348,18 @@ static void PmLeave(void)
 
     if (pm && !IsIconic(pm) && g_pmHome == g_current)
     {
+        /* Remember how many windows of this desktop were above it, so the
+           pager keeps drawing it at the same depth in this desktop's cell
+           while it is an icon (its icon moves in the Z order, D-093). */
+        HWND wins[MAX_WINDOWS];
+        int i, n = CoreWindows(g_current, wins, MAX_WINDOWS, FALSE);
+        g_pmZ = 0;
+        for (i = 0; i < n; i++)
+            if (wins[i] == pm)
+            {
+                g_pmZ = i;
+                break;
+            }
         ShowWindow(pm, SW_SHOWMINNOACTIVE);
         g_pmByUs = TRUE;
     }
@@ -571,8 +593,7 @@ int CoreWindows(int desk, HWND *out, int max, BOOL forList)
                 take = TRUE;
             else if (!IsIconic(pm))
                 take = (g_pmHome == desk);
-            else
-                take = (g_pmByUs && g_pmHome == desk);
+            /* minimized by QuadDesk: inserted below at its remembered depth */
         }
         else
         {
@@ -591,6 +612,17 @@ int CoreWindows(int desk, HWND *out, int max, BOOL forList)
         }
         if (take)
             out[n++] = h;
+    }
+
+    /* Program Manager minimized by QuadDesk is drawn in its desktop's cell
+       at the depth it had when it was minimized (D-076, D-093). */
+    if (!forList && pm && IsIconic(pm) && g_pmByUs && g_pmHome == desk && n < max)
+    {
+        int i, at = g_pmZ < n ? g_pmZ : n;
+        for (i = n; i > at; i--)
+            out[i] = out[i - 1];
+        out[at] = pm;
+        n++;
     }
     return n;
 }
