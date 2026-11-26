@@ -3,7 +3,7 @@
 A virtual desktop manager for **Windows 3.1**, designed for 640×480 and for
 retro computing enthusiasts.
 
-> **Status:** in development. Milestone 2 (pager) of 5; v0.1 (core) released.
+> **Status:** in development. v0.2 (pager) released; next, milestone 3 (moving windows) of 5.
 
 ## What it does
 

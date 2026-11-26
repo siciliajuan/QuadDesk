@@ -453,7 +453,7 @@ issues to revisit").
 | Milestone | Status |
 |---|---|
 | 1 — Core (v0.1) | **Done.** All tests (tests/HITO1.TXT) passed on the real 486 on 2026-11-24. Temporary UI: an icon titled `QuadDesk [N]`; messages in English only. |
-| 2 — Pager (v0.2) | Delivered, waiting for tests on the 486 (tests/HITO2.TXT). UI texts in English only. |
+| 2 — Pager (v0.2) | **Done.** All tests (tests/HITO2.TXT) passed on the real 486 on 2026-11-26. UI texts in English only. |
 | 3 — Moving windows (v0.3) | Not started (technique validated with VDTEST) |
 | 4 — Preferences, CPL, languages (v0.4) | Not started |
 | 5 — Help, readme, setup (v0.5) | Not started |

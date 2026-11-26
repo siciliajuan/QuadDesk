@@ -1,22 +1,30 @@
 # Changelog
 
-## v0.2 - Milestone 2: pager (unreleased)
+## v0.2 - Milestone 2: pager (2026-11-26)
 
 - Pager window of fixed size: the four desktops to scale in 80×60 cells,
-  with the icon of each window (32×32, 16×16 or an empty rectangle);
-  click a cell to switch.
+  with the icon of each window (32×32 if it fits, otherwise an empty
+  rectangle; maximized windows without the title bar strip); click a cell
+  to switch.
 - Window list of the active desktop (or of the cell under the mouse), with
-  a counter, 5 rows and a scrollbar.
+  a counter, 5 rows, a scrollbar and 16×16 icons; double click gives a
+  window the focus (restoring it if it is minimized), like Switch To in
+  the Task List.
+- The active cell uses the title bar colours of your colour scheme, with a
+  black border.
 - Status bar with the shortcut hint; Options and Help menus (Preferences
   and help entries greyed until milestones 4 and 5); About QuadDesk.
 - Live icon when minimized: the 2×2 grid with the active desktop.
-- Desktops with a pending dialog blink in the pager and in the live icon.
+- Desktops with a pending dialog blink in the pager and in the live icon;
+  pending dialogs get the focus when you arrive.
 - Ctrl+Alt+Shift+Space shows or hides the pager.
-- Double click on a window in the list gives it the focus (restoring it if
-  it is minimized), like Switch To in the Task List.
-- Program Manager minimized by QuadDesk is still drawn in its desktop's
-  cell.
-- One 100 ms timer plus CBT events; repaints only when something changed.
+- Program Manager is listed on every desktop and still drawn in its own
+  desktop's cell while QuadDesk keeps it minimized.
+- Opening again an application minimized on another desktop takes you to
+  it, as when its window is open.
+- One 100 ms timer plus CBT events; only what changed is repainted.
+- Fixes: new dialogs on another desktop no longer make QuadDesk jump;
+  popup menus are never treated as desktop windows.
 
 ## v0.1 - Milestone 1: core (2026-11-24)
 
