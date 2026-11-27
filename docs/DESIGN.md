@@ -77,8 +77,10 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   chosen to receive the focus. [decided — D-091]
 - Windows marked "always on top" by their application stay on their own
   desktop like any other window. [decided]
-- Minimized applications (icons) belong to their desktop and only appear
-  there. [decided — reconfirmed in D-074]
+- **Minimized applications are visible on every desktop**: their icons
+  are never parked. Restoring one on any desktop (double click, Task List,
+  opening it again from Program Manager) opens it on that desktop, which
+  it then belongs to. [decided — D-096, D-112; supersedes D-074 and D-073]
 - **Focus:** if a dialog appeared on a desktop while the user was away, it
   gets the focus (and comes to the front) when the user arrives there, so
   it is the first thing they see; this takes precedence over the rule
@@ -148,8 +150,10 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   version, copyright and MIT license. **To be reviewed later** (a custom
   dialog with the icon is an option). [decided for now — D-069, review
   pending]
-- **Window list** below the grid:
-  - shows the windows of the active desktop; while the mouse is over another
+- **Two lists** below the grid (the pager is about 442 px high and still
+  fits 640×480) [decided — D-097, D-112]:
+- **Window list** (5 rows), `Windows on desktop N (X):`:
+  - shows the open windows of the active desktop; while the mouse is over another
     cell, it shows that desktop's windows instead and goes back to the
     active desktop when the mouse leaves the grid (in the gaps between
     cells the last cell's list is kept, so it does not flash); [decided —
@@ -158,21 +162,39 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
     more; to scroll the list of another desktop the user has to switch to
     it first; [decided]
   - the header shows a counter: `Windows on desktop N (X):`; [decided]
-  - minimized windows appear like any other, with no extra mark. [decided]
-  - Program Manager appears in the list of **every** desktop, open or
-    minimized, because it is always present on all of them (a window on
-    its own desktop, an icon on the others). [decided — D-082]
+  - Program Manager is in it when it is open on the listed desktop (also
+    while QuadDesk keeps it minimized there, D-076). [decided — D-097]
+- **Minimized list** (3 rows), `Minimized applications (Y):`: every
+  minimized application, the same on every desktop. Program Manager is
+  always its first row on every desktop where it is not open (also while
+  it is open on its own). Hovering over the cells never repaints it; it
+  only changes when an application is minimized or restored. [decided —
+  D-097, D-099, D-104]
+- Both lists [decided]:
   - **double click** on a window works like Switch To in the Task List:
     the window gets the focus (or its active dialog, if it has one), and a
     minimized window is restored first. Program Manager as an icon is
     restored on the current desktop and now belongs to it (as in D-057).
-    A single click does nothing and no row is shown as selected. It only
-    applies to the active desktop's list, because the list goes back to
-    the active desktop when the mouse leaves the cells. [decided — D-077]
+    A single click does nothing and no row is shown as selected. In the
+    window list it only applies to the active desktop's windows, because
+    the list goes back to the active desktop when the mouse leaves the
+    cells; in the minimized list it restores the application on the
+    current desktop. [decided — D-077, D-096]
 - **Status bar:** only the shortcut hint (`Ctrl+Alt+Shift+Arrows`, localized).
   [decided]
 - The pager is **not always on top**; it can be covered by other windows.
   [decided]
+- **The pager while navigating** — switching with Ctrl+Alt+Shift+arrows
+  or by clicking a cell [decided — D-095, D-101, D-112]:
+  - if the pager is open and **active**, it stays active and in front on
+    the new desktop; a pending dialog there does not take the focus;
+  - if it is open and **inactive**, it stays inactive: the focus goes to
+    the desktop's remembered window (or Program Manager's icon on an
+    empty desktop) and the pager goes back to the depth it had among
+    that desktop's windows;
+  - switches from the Task List, Alt+Tab or the list double click are
+    unchanged (the chosen window gets the focus);
+  - only the two cells whose highlight changes are repainted.
 - **Refresh:** WH_CBT events (create, destroy, minimize, maximize) plus a
   100 ms timer for moves and resizes that only repaints when something
   changed. This single 100 ms timer also checks for new dialogs (milestone 1
@@ -238,10 +260,8 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - **Cascade, Tile and Arrange Icons** (Task List) bring every window on
   screen: QuadDesk moves those windows to the current desktop. This doubles
   as an emergency recovery and is documented in the help and the README.
-  Not to be confused with **restoring a parked icon** (for example, opening
-  again from Program Manager an application minimized on another desktop):
-  it keeps its desktop and the user is taken there, exactly as when the
-  application's window is open (D-073).
+  Icons are never parked (D-096), so restoring a minimized application
+  always opens it on the current desktop (D-073 superseded).
   Minimized windows are not touched by Cascade or Tile; this includes
   Program Manager while it is an icon on other desktops (D-054), which
   stays as it is. [decided — D-062]
@@ -387,40 +407,15 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   off screen (D-109, reverted) made the transition visible, and giving
   back its normal/maximized placement with SetWindowPlacement brought it
   to the top again.
-- **Minimized applications on every desktop** (D-090). Juan wants to
-  reconsider D-074: show the icons of minimized applications on every
-  desktop instead of only on their own. Until then, D-074 stays.
-
-- **Keep the pager visible after navigating with it** (D-094). When the
-  user switches desktop by clicking a cell, or gives the focus to a window
-  by double-clicking it in the pager's list, the window that gets the
-  focus can cover the pager. Juan wants to land on the desktop (or stay on
-  the current one) with the pager still on top and visible. To prepare:
-  whether the pager stays in front only after navigating with it or also
-  in other cases, and how it fits with the rule "the pager is not always on
-  top" (section 4; for example, placing it above the activated window without taking
-  the focus).
+- ~~**Minimized applications on every desktop**~~ (D-090) — done before
+  v1.0 (D-096, D-112).
+- ~~**Keep the pager visible after navigating with it**~~ (D-094) — done
+  before v1.0 for shortcuts and cell clicks (D-101, D-112): an active pager
+  stays active and in front. After a double click in the list, the chosen
+  window gets the focus, as decided.
 
 These are accepted for v1.0 and must not be forgotten: each one has to be
 prepared properly (scenario, expected behaviour, design) before coding.
-
-### On trial
-
-Changes being tried on the 486; they become decided or are removed after
-the test (tests/PRUEBA-EXP.TXT).
-
-- **The pager while navigating** (D-095, D-101): with Ctrl+Alt+Shift+arrows
-  or a pager cell, an active pager stays active and in front (also over a
-  pending dialog), and an inactive pager stays inactive at the depth it had
-  on each desktop. Task List, Alt+Tab and list double click unchanged.
-  Switching desktop only repaints the two cells whose highlight changes.
-- **Minimized applications on every desktop** (D-096): icons are never
-  parked and are listed on every desktop; restoring one opens it on the
-  current desktop, which it then belongs to.
-- **Two lists in the pager** (D-097): open windows of the listed desktop
-  (5 rows) and minimized applications, the same on every desktop (3 rows),
-  with Program Manager first in the minimized list when it belongs there.
-  The pager grows to about 442 px high.
 
 ## 14. Delivery and repository
 
@@ -433,8 +428,9 @@ the test (tests/PRUEBA-EXP.TXT).
 - Releases on GitHub: the zip with the prepared files plus one or more
   floppy `.img` files. [decided]
 - Version numbers use two parts, `vMAJOR.MINOR`. Each milestone is a
-  pre-release: `v0.1` core, `v0.2` pager, `v0.3` moving windows, `v0.4`
-  preferences/CPL/languages, `v0.5` help/readme/setup; `v1.0` when
+  pre-release: `v0.1` core, `v0.2` pager, `v0.3` pager improvements,
+  `v0.4` moving windows, `v0.5` preferences/CPL/languages, `v0.6`
+  help/readme/setup; `v1.0` when
   everything is finished. [decided]
 - Repository name: `quaddesk`. [decided]
 
@@ -467,20 +463,26 @@ here first. [decided — D-063 to D-067]
 - Not in this milestone: moving windows (3), preferences, "Show icon" off
   and CPL (4), help (5).
 
-**3 — Moving windows (v0.3)**
+**2b — Pager improvements (v0.3)** — done (tested in QA, tests/QA.TXT)
+- Minimized applications on every desktop; two lists in the pager; the
+  pager while navigating; active cell colours follow the pager's title
+  bar; system-modal boxes do not move the user; popup menus never managed
+  (D-091 to D-107, adopted in D-112).
+
+**3 — Moving windows (v0.4)**
 - Drag a real window by its title bar onto a pager cell (section 5).
 - Extended system menu `Move to Desktop ▸` (section 5).
 - Fix: a click on a title bar without moving must not leave a "moving"
   state.
 
-**4 — Preferences, CPL and languages (v0.4)**
+**4 — Preferences, CPL and languages (v0.5)**
 - Preferences dialog (section 8), configurable shortcuts, "Play a sound",
   "Show icon" (hidden mode and its warning), start with Windows.
 - `QUADDESK.CPL` (section 12, registration only).
 - Resource DLLs `QDESKEN.DLL` and `QDESKES.DLL`, language from WIN.INI
   (section 10).
 
-**5 — Help, readme and setup (v0.5)**
+**5 — Help, readme and setup (v0.6)**
 - Review the About box (D-069).
 - WinHelp help in both languages, enabling the greyed help entries and F1.
 - `README.TXT` and `LEAME.TXT`.
@@ -497,6 +499,7 @@ issues to revisit").
 |---|---|
 | 1 — Core (v0.1) | **Done.** All tests (tests/HITO1.TXT) passed on the real 486 on 2026-11-24. Temporary UI: an icon titled `QuadDesk [N]`; messages in English only. |
 | 2 — Pager (v0.2) | **Done.** All tests (tests/HITO2.TXT) passed on the real 486 on 2026-11-26. UI texts in English only. |
-| 3 — Moving windows (v0.3) | Not started (technique validated with VDTEST) |
-| 4 — Preferences, CPL, languages (v0.4) | Not started |
-| 5 — Help, readme, setup (v0.5) | Not started |
+| 2b — Pager improvements (v0.3) | **Done.** Full QA (tests/QA.TXT) passed on the real 486 on 2026-11-27, except the known issues kept for after v1.0. |
+| 3 — Moving windows (v0.4) | Not started (technique validated with VDTEST) |
+| 4 — Preferences, CPL, languages (v0.5) | Not started |
+| 5 — Help, readme, setup (v0.6) | Not started |

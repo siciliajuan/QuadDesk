@@ -10,7 +10,7 @@
 #define QDCORE_H
 
 #define APP_NAME     "QuadDesk"
-#define APP_VERSION  "0.2"
+#define APP_VERSION  "0.3"
 
 #define NUM_DESKS    4
 #define GRID_COLS    2

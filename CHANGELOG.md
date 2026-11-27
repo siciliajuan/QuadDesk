@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.3 - Pager improvements (2026-11-27)
+
+- Minimized applications are visible on every desktop; restoring one opens
+  it on the desktop you are on.
+- Two lists in the pager: windows of the desktop (5 rows) and minimized
+  applications, the same on every desktop (3 rows), with Program Manager
+  first when it belongs there.
+- The pager while navigating with the shortcuts or its cells: an active
+  pager stays active and in front; an inactive pager stays inactive at the
+  depth it had on each desktop.
+- Switching desktop only repaints the two cells whose highlight changes;
+  blinking only repaints the blinking cells.
+- The active cell's label follows the pager's own title bar colours
+  (active or inactive).
+- Program Manager comes back on its desktop at its depth, without taking
+  the focus.
+- Closing a system-modal box no longer moves you to another desktop.
+- When a dialog of another desktop appears, the focus goes back to the
+  window that had it (the pager included).
+- Fixes: Program Manager minimized at start-up was a blank row in the
+  list; popup menus are never treated as desktop windows.
+- Known issues, for after v1.0: Program Manager can show in front for an
+  instant when it is restored; its icon can end up in front after closing
+  a window.
+
 ## v0.2 - Milestone 2: pager (2026-11-26)
 
 - Pager window of fixed size: the four desktops to scale in 80×60 cells,

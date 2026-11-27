@@ -1,8 +1,9 @@
 QUADDESK - PLAN DE QA COMPLETO
 ==============================
 
-Repasa todo lo decidido: hito 1 (núcleo), hito 2 (pager) y los cambios en
-prueba (D-095 a D-101). Usa QDQA.EXE para crear todo tipo de ventanas.
+Guía de regresión: repasa todo lo decidido en el hito 1 (núcleo), el
+hito 2 (pager) y sus mejoras (D-091 a D-107, adoptadas en D-112). Usa
+QDQA.EXE para crear todo tipo de ventanas. Repítela antes de cada release.
 
 Cómo informar: para cada paso, "Sección.paso OK" o "Sección.paso FALLO:
 qué viste". Si algo falla, una foto ayuda mucho.
