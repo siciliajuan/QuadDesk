@@ -401,43 +401,16 @@ static void PmArrive(void)
 
     if (pm && IsIconic(pm) && g_pmByUs && g_pmHome == g_current)
     {
-        HWND wins[MAX_WINDOWS];
-        HWND after = HWND_TOP;
-        int i, k = 0, n;
-
-        /* Where it goes in the Z order: at the depth it had among this
-           desktop's windows when it was minimized (D-093, D-103); if it
-           was on top and the pager is active, just under the pager. It is
-           put there BEFORE being restored, so it never shows in front of
-           everything, not even for an instant (D-106). */
-        if (g_pmZ > 0)
-        {
-            n = CoreWindows(g_current, wins, MAX_WINDOWS, CW_THUMBS);
-            for (i = 0; i < n; i++)
-            {
-                if (wins[i] == pm)
-                    continue;
-                after = wins[i];                /* last one if too few */
-                if (++k == g_pmZ)
-                    break;
-            }
-        }
-        else if (GetActiveWindow() == g_hwndMain &&
-                 IsWindowVisible(g_hwndMain) && !IsIconic(g_hwndMain))
-            after = g_hwndMain;
-
-        SetWindowPos(pm, after, 0, 0, 0, 0,
-                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-        /* Restored without activating it (D-104); Program Manager activates
+        /* Its place in the Z order was already set by ArrangeDesk (D-108).
+           Restored without activating it (D-104); Program Manager activates
            itself when restored, so the hook refuses that activation while
            QuadDesk restores it (D-105). The focus is decided afterwards by
-           the switch. */
+           the switch. Known issue: restoring it still shows it in front for
+           an instant (D-110, after v1.0). */
         QDBlockActivation(pm);
         ShowWindow(pm, SW_SHOWNOACTIVATE);
         QDBlockActivation(NULL);
         g_pmByUs = FALSE;
-        SetWindowPos(pm, after, 0, 0, 0, 0,
-                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     }
 }
 
@@ -613,21 +586,33 @@ static int PagerDepth(void)
     return depth;
 }
 
-/* Puts the inactive pager back at its remembered depth on this desktop. */
-static void PagerRestoreDepth(void)
+/* Puts the windows of the current desktop, Program Manager and (if
+   pagerAt >= 0) the pager in their final Z order in one go: the desktop's
+   windows in their order, Program Manager at its remembered depth
+   (D-093), the pager at depth pagerAt. Done while the desktop's windows
+   are still off screen and Program Manager is still an icon, so nothing
+   is ever seen in a wrong place on the way (D-108). */
+static void ArrangeDesk(int pagerAt)
 {
-    HWND wins[MAX_WINDOWS];
-    int n, depth = g_pagerZ[g_current];
+    HWND wins[MAX_WINDOWS + 1];
+    int i, n = CoreWindows(g_current, wins, MAX_WINDOWS, CW_THUMBS);
 
-    if (depth <= 0)
-        return;                         /* unknown or on top: leave it */
-    n = CoreWindows(g_current, wins, MAX_WINDOWS, CW_THUMBS);
+    if (pagerAt >= 0)
+    {
+        if (pagerAt > n)
+            pagerAt = n;
+        for (i = n; i > pagerAt; i--)
+            wins[i] = wins[i - 1];
+        wins[pagerAt] = g_hwndMain;
+        n++;
+    }
     if (n == 0)
         return;
-    if (depth > n)
-        depth = n;
-    SetWindowPos(g_hwndMain, wins[depth - 1], 0, 0, 0, 0,
+    SetWindowPos(wins[0], HWND_TOP, 0, 0, 0, 0,
                  SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    for (i = 1; i < n; i++)
+        SetWindowPos(wins[i], wins[i - 1], 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
 static void DoSwitch(int desk, BOOL nav)
@@ -668,6 +653,11 @@ static void DoSwitch(int desk, BOOL nav)
 
     g_current = desk;
 
+    /* Final Z order first, while everything is still out of sight
+       (D-108): the pager on top if it is active, at its remembered depth
+       if it is inactive (unknown on a first visit: left alone). */
+    ArrangeDesk(keepActive ? 0 : (keepDepth ? g_pagerZ[g_current] : -1));
+
     for (i = 0; i < g_count; i++)
         if (g_win[i].desk == g_current)
             Unpark(&g_win[i]);
@@ -678,16 +668,11 @@ static void DoSwitch(int desk, BOOL nav)
         /* The pager keeps the focus; a pending dialog here waits (it is
            visible on this desktop now, so it no longer blinks). */
         g_pending[g_current] = NULL;
-        BringWindowToTop(g_hwndMain);
-        if (GetActiveWindow() != g_hwndMain)    /* PmArrive may activate */
+        if (GetActiveWindow() != g_hwndMain)
             SetActiveWindow(g_hwndMain);
     }
     else
-    {
         ActivateTopWindow();
-        if (keepDepth)
-            PagerRestoreDepth();
-    }
     QDSetSwitching(FALSE);
     g_lastActive = GetActiveWindow();
     PagerRefresh();

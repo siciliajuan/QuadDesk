@@ -378,6 +378,15 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   wrongly in the pager cells. Related to the first item of this list.
   One case fixed before v1.0 (D-093): drawn above windows that were on
   top of it in its cell after switching to an empty desktop.
+  Also: **brief flash when it is restored** (D-110). With the pager active,
+  arriving at Program Manager's desktop shows Program Manager in front of
+  everything (pager included) for a fraction of a second when it overlaps
+  the pager. Findings: restoring a minimized window puts it on top for an
+  instant even if it was placed at its depth before (D-108); Program
+  Manager activates itself when restored (blocked by D-105); restoring it
+  off screen (D-109, reverted) made the transition visible, and giving
+  back its normal/maximized placement with SetWindowPlacement brought it
+  to the top again.
 - **Minimized applications on every desktop** (D-090). Juan wants to
   reconsider D-074: show the icons of minimized applications on every
   desktop instead of only on their own. Until then, D-074 stays.

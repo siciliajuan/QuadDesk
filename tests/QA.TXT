@@ -190,6 +190,10 @@ Escritorios:   1  2
   9.2 Pager inactivo entre dos ventanas (Write encima, Bloc de notas
       debajo). Cambia al 2 con el teclado y vuelve.
       - Sigue inactivo y entre las dos.
+  9.2b Con el Administrador de programas ENCIMA del pager inactivo (que
+      lo tape total o parcialmente), vete a otro escritorio y vuelve.
+      - Todo aparece directamente en su sitio, sin que el Administrador
+        de programas se dibuje primero y luego se mueva (D-108).
   9.3 Pager inactivo, cambia a un escritorio vacío.
       - Sigue inactivo; foco al icono del Administrador de programas.
   9.4 Lista de tareas, Alt+Tab y doble clic en la lista: la ventana
@@ -238,5 +242,8 @@ PROBLEMAS CONOCIDOS (no hace falta informar)
     quedar activo y por delante de otra ventana (D-089, después de v1.0).
   - La posición en Z del Administrador de programas puede variar en
     algunos casos (D-090, después de v1.0).
+  - Con el pager activo, al volver al escritorio del Administrador de
+    programas, este puede verse delante una fracción de segundo si tapa
+    parte del pager (D-110, después de v1.0).
   - Los atajos no funcionan con una sesión de MS-DOS a pantalla
     completa.
