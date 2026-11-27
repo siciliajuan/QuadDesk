@@ -60,7 +60,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
     open. When the user leaves that desktop, QuadDesk minimizes it, so on
     every other desktop it appears as an icon. [decided — D-054]
   - **Back to its desktop without touching the icon:** QuadDesk restores it
-    there automatically, normal or maximized as it was. [decided — D-056]
+    there automatically, normal or maximized as it was, and at the same
+    depth among that desktop's windows (a window that covered it still
+    covers it). [decided — D-056, D-103]
   - **Restoring the icon on another desktop** (double click, Restore in its
     menu, or Switch To in the Task List) opens it on that desktop in the
     state it had, and it now belongs to that desktop. Because its icon is
@@ -116,7 +118,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - **Cells:** label `Desktop N` plus the scaled thumbnail. The active desktop
   is highlighted with a label in the colours of the active title bar of
   the user's colour scheme (text in the title bar text colour), so it
-  matches the other windows at any colour depth (D-078), and a black 2 px
+  matches the other windows at any colour depth (D-078) — active colours
+  while the pager is active, inactive ones otherwise, like its own title
+  bar (D-100) — and a black 2 px
   border, so it stands out with any scheme, also light ones (D-080).
   Inactive cells have a grey label and a black 1 px border. Clicking a cell switches to it.
   [decided]
@@ -219,7 +223,9 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   QuadDesk found less than 1.5 s ago never causes a jump. [decided — D-039,
   D-070]
 - **System-modal** message boxes and system errors (GPF, drive not ready…)
-  always appear on the current desktop. [decided]
+  always appear on the current desktop. [decided] When one is closed, the
+  user stays on the current desktop even if Windows gives the focus back
+  to its owner on another desktop. [decided — D-107]
 - **Dialogs without owner** (class `#32770`, for example a `MessageBox`
   called with no owner window) belong to the application (task) that
   created them: if that application has no window on the current desktop
@@ -376,8 +382,36 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   reconsider D-074: show the icons of minimized applications on every
   desktop instead of only on their own. Until then, D-074 stays.
 
+- **Keep the pager visible after navigating with it** (D-094). When the
+  user switches desktop by clicking a cell, or gives the focus to a window
+  by double-clicking it in the pager's list, the window that gets the
+  focus can cover the pager. Juan wants to land on the desktop (or stay on
+  the current one) with the pager still on top and visible. To prepare:
+  whether the pager stays in front only after navigating with it or also
+  in other cases, and how it fits with the rule "the pager is not always on
+  top" (section 4; for example, placing it above the activated window without taking
+  the focus).
+
 These are accepted for v1.0 and must not be forgotten: each one has to be
 prepared properly (scenario, expected behaviour, design) before coding.
+
+### On trial
+
+Changes being tried on the 486; they become decided or are removed after
+the test (tests/PRUEBA-EXP.TXT).
+
+- **The pager while navigating** (D-095, D-101): with Ctrl+Alt+Shift+arrows
+  or a pager cell, an active pager stays active and in front (also over a
+  pending dialog), and an inactive pager stays inactive at the depth it had
+  on each desktop. Task List, Alt+Tab and list double click unchanged.
+  Switching desktop only repaints the two cells whose highlight changes.
+- **Minimized applications on every desktop** (D-096): icons are never
+  parked and are listed on every desktop; restoring one opens it on the
+  current desktop, which it then belongs to.
+- **Two lists in the pager** (D-097): open windows of the listed desktop
+  (5 rows) and minimized applications, the same on every desktop (3 rows),
+  with Program Manager first in the minimized list when it belongs there.
+  The pager grows to about 442 px high.
 
 ## 14. Delivery and repository
 

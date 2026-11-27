@@ -46,11 +46,16 @@
 #define LIST_ROWS   5
 #define LIST_Y      (HEADER_Y + HEADER_H + 3)
 #define LIST_H      (LIST_ROWS * ITEM_H + 2)
-#define STATUS_Y    (LIST_Y + LIST_H + 8)
+#define MIN_ROWS    3
+#define MINHDR_Y    (LIST_Y + LIST_H + 6)
+#define MINLIST_Y   (MINHDR_Y + HEADER_H + 3)
+#define MINLIST_H   (MIN_ROWS * ITEM_H + 2)
+#define STATUS_Y    (MINLIST_Y + MINLIST_H + 8)
 #define STATUS_H    18
 #define CLIENT_H    (STATUS_Y + STATUS_H + 8)
 
 #define ID_LIST     200
+#define ID_MINLIST  201
 
 /* Menu commands. System menu commands must stay below 0xF000. */
 #define IDM_PREFS       100
@@ -68,12 +73,23 @@
    of the user's colour scheme, so it matches every other window at any
    colour depth (D-078). Its border is black and 2 px thick, so it stands
    out with any scheme, also light ones (D-080). */
-#define ActiveColour()  GetSysColor(COLOR_ACTIVECAPTION)
+static BOOL g_pagerActive = FALSE;      /* the pager is the active window */
+
+/* The active cell's label follows the pager's own title bar: active or
+   inactive colours of the scheme (D-078, D-100). */
+#define ActiveColour()  GetSysColor(g_pagerActive ? COLOR_ACTIVECAPTION : COLOR_INACTIVECAPTION)
+#define ActiveText()    GetSysColor(g_pagerActive ? COLOR_CAPTIONTEXT : COLOR_INACTIVECAPTIONTEXT)
+
+void PagerSetActive(BOOL active)
+{
+    g_pagerActive = active;
+    PagerRefresh();
+}
 #define CYAN        RGB(0, 255, 255)
 #define GREY        RGB(192, 192, 192)
 #define DARKGREY    RGB(128, 128, 128)
 
-static HWND    g_hwndList;
+static HWND    g_hwndList, g_hwndMinList;
 static HFONT   g_fontBold, g_fontNormal;
 static HDC     g_memDC;                 /* for drawing 16x16 icons */
 static HBITMAP g_memBmp, g_memOld;
@@ -81,8 +97,12 @@ static int     g_hover   = -1;          /* cell under the mouse, or -1 */
 static int     g_listDesk = -1;         /* desktop shown in the list    */
 static HWND    g_listWnd[MAX_LIST];
 static int     g_listCount = 0;
-static DWORD   g_gridSig = 0;           /* of what the grid/icon shows  */
-static DWORD   g_listSig = 0;           /* of what the list shows       */
+static HWND    g_minWnd[MAX_LIST];
+static int     g_minCount = 0;
+static DWORD   g_cellSig[NUM_DESKS];    /* of what each cell shows      */
+static BOOL    g_wasIconic = FALSE;
+static DWORD   g_listSig = 0;           /* of what the window list shows */
+static DWORD   g_minSig = 0;            /* of the minimized list         */
 static DWORD   g_blinkSig = 0;          /* of the blinking cells        */
 static int     g_blinkMask = 0;         /* cells blinking at last paint */
 static BOOL    g_blinkOn = FALSE;
@@ -295,34 +315,53 @@ static int ListDesk(void)
     return g_hover >= 0 ? g_hover : g_current;
 }
 
-/* Fills the list box again if its windows changed; otherwise only
-   repaints it (a title may have changed). */
-static void UpdateList(void)
+/* Fills a list box again if its windows changed; otherwise only repaints
+   it (a title may have changed). Returns TRUE if it was refilled. */
+static BOOL FillList(HWND lb, HWND *wins, int n, HWND *cur, int *count, BOOL force)
+{
+    int i;
+
+    if (!force && n == *count && memcmp(wins, cur, n * sizeof(HWND)) == 0)
+    {
+        InvalidateRect(lb, NULL, FALSE);
+        return FALSE;
+    }
+    SendMessage(lb, WM_SETREDRAW, FALSE, 0L);
+    SendMessage(lb, LB_RESETCONTENT, 0, 0L);
+    for (i = 0; i < n; i++)
+        SendMessage(lb, LB_ADDSTRING, 0, (LPARAM)(DWORD)(WORD)wins[i]);
+    SendMessage(lb, WM_SETREDRAW, TRUE, 0L);
+    /* Items paint their whole row, so the background only needs erasing
+       when there are fewer rows than before. */
+    InvalidateRect(lb, NULL, n < *count);
+    memcpy(cur, wins, n * sizeof(HWND));
+    *count = n;
+    return TRUE;
+}
+
+/* The two lists (D-097, on trial): the open windows of the listed desktop
+   (5 rows) and the minimized applications, the same on every desktop
+   (3 rows). Icon handles of closed windows may be reused, so the shrunk
+   icons are forgotten whenever a list is refilled (they are drawn later,
+   when painting). */
+static void UpdateWinList(void)
 {
     HWND wins[MAX_LIST];
     int desk = ListDesk();
-    int i, n = CoreWindows(desk, wins, MAX_LIST, TRUE);
+    int n = CoreWindows(desk, wins, MAX_LIST, CW_WINDOWS);
 
-    if (desk == g_listDesk && n == g_listCount &&
-        memcmp(wins, g_listWnd, n * sizeof(HWND)) == 0)
-    {
-        InvalidateRect(g_hwndList, NULL, FALSE);
-        return;
-    }
+    if (FillList(g_hwndList, wins, n, g_listWnd, &g_listCount, desk != g_listDesk))
+        ClearIconCache();
+    g_listDesk = desk;
+}
 
-    ClearIconCache();           /* icon handles of closed windows may be reused */
-    SendMessage(g_hwndList, WM_SETREDRAW, FALSE, 0L);
-    SendMessage(g_hwndList, LB_RESETCONTENT, 0, 0L);
-    for (i = 0; i < n; i++)
-        SendMessage(g_hwndList, LB_ADDSTRING, 0, (LPARAM)(DWORD)(WORD)wins[i]);
-    SendMessage(g_hwndList, WM_SETREDRAW, TRUE, 0L);
-    /* Items paint their whole row, so the background only needs erasing
-       when there are fewer rows than before. */
-    InvalidateRect(g_hwndList, NULL, n < g_listCount);
+static void UpdateMinList(void)
+{
+    HWND wins[MAX_LIST];
+    int n = CoreWindows(ListDesk(), wins, MAX_LIST, CW_MINIMIZED);
 
-    memcpy(g_listWnd, wins, n * sizeof(HWND));
-    g_listCount = n;
-    g_listDesk  = desk;
+    if (FillList(g_hwndMinList, wins, n, g_minWnd, &g_minCount, FALSE))
+        ClearIconCache();
 }
 
 void PagerMeasureItem(MEASUREITEMSTRUCT FAR *mis)
@@ -337,7 +376,8 @@ void PagerDrawItem(DRAWITEMSTRUCT FAR *dis)
     RECT rc;
     HFONT old;
 
-    if (dis->CtlID != ID_LIST || dis->itemID == (UINT)-1)
+    if ((dis->CtlID != ID_LIST && dis->CtlID != ID_MINLIST) ||
+        dis->itemID == (UINT)-1)
         return;
     rc = dis->rcItem;
     FillRect(dis->hDC, &rc, (HBRUSH)GetStockObject(WHITE_BRUSH));
@@ -367,29 +407,33 @@ void PagerDrawItem(DRAWITEMSTRUCT FAR *dis)
      its windows and their titles.
    Moving the mouse over the cells only changes the list signature, so the
    cells are never repainted for that. */
-static DWORD GridSignature(void)
+/* One signature per cell (D-101): when switching desktop only the two
+   cells whose highlight changes are repainted; thumbnails do not move. */
+static DWORD CellSignature(int d)
 {
     HWND wins[MAX_LIST];
     DWORD sig = 0;
     RECT rc;
-    int d, i, n;
+    int i, n;
 
-    sig = Mix(sig, (DWORD)g_current);
-    sig = Mix(sig, (DWORD)IsIconic(g_hwndMain));
-    sig = Mix(sig, GetSysColor(COLOR_ACTIVECAPTION));      /* scheme changed */
-    sig = Mix(sig, GetSysColor(COLOR_CAPTIONTEXT));
+    sig = Mix(sig, (DWORD)(d == g_current));
     sig = Mix(sig, GetSysColor(COLOR_BACKGROUND));
-    for (d = 0; d < NUM_DESKS; d++)
+    if (d == g_current)
     {
-        n = CoreWindows(d, wins, MAX_LIST, FALSE);
-        for (i = 0; i < n; i++)
-        {
-            CoreWindowRect(wins[i], &rc);
-            sig = Mix(sig, (DWORD)(WORD)wins[i]);
-            sig = Mix(sig, ((DWORD)(WORD)rc.left << 16) | (WORD)rc.top);
-            sig = Mix(sig, ((DWORD)(WORD)rc.right << 16) | (WORD)rc.bottom);
-        }
-        sig = Mix(sig, 0xFFFFUL);
+        sig = Mix(sig, GetSysColor(COLOR_ACTIVECAPTION));      /* scheme changed */
+        sig = Mix(sig, GetSysColor(COLOR_CAPTIONTEXT));
+        sig = Mix(sig, GetSysColor(COLOR_INACTIVECAPTION));
+        sig = Mix(sig, GetSysColor(COLOR_INACTIVECAPTIONTEXT));
+        sig = Mix(sig, (DWORD)g_pagerActive);
+    }
+    n = CoreWindows(d, wins, MAX_LIST, CW_THUMBS);
+    for (i = 0; i < n; i++)
+    {
+        CoreWindowRect(wins[i], &rc);
+        sig = Mix(sig, (DWORD)(WORD)wins[i]);
+        sig = Mix(sig, ((DWORD)(WORD)rc.left << 16) | (WORD)rc.top);
+        sig = Mix(sig, ((DWORD)(WORD)rc.right << 16) | (WORD)rc.bottom);
+        sig = Mix(sig, (DWORD)CoreIsMaximized(wins[i]));
     }
     return sig;
 }
@@ -411,14 +455,16 @@ static DWORD BlinkSignature(void)
     return sig;
 }
 
-static DWORD ListSignature(void)
+/* The two lists are tracked separately (D-099): moving the mouse over the
+   cells changes the window list, but the minimized list is the same on
+   every desktop and is only repainted when it really changes. */
+static DWORD ListSig(int mode)
 {
     HWND wins[MAX_LIST];
     DWORD sig = 0;
     int i, n;
 
-    sig = Mix(sig, (DWORD)ListDesk());
-    n = CoreWindows(ListDesk(), wins, MAX_LIST, TRUE);
+    n = CoreWindows(ListDesk(), wins, MAX_LIST, mode);
     for (i = 0; i < n; i++)
     {
         sig = Mix(sig, (DWORD)(WORD)wins[i]);
@@ -429,37 +475,56 @@ static DWORD ListSignature(void)
 
 void PagerRefresh(void)
 {
-    DWORD grid, blink, list;
+    DWORD cell[NUM_DESKS], blink, list, mins;
+    BOOL gridChanged = FALSE, iconic;
     RECT rc;
     int d;
 
-    if (g_hwndMain == NULL)
+    /* Nothing to do until the pager and both lists exist: Windows can ask
+       for a refresh while the pager is being created (SetMenu resizes
+       it), and filling the lists then would be lost (D-098). */
+    if (g_hwndMain == NULL || g_hwndList == NULL || g_hwndMinList == NULL)
         return;
-    grid  = GridSignature();
+    iconic = IsIconic(g_hwndMain);
+    for (d = 0; d < NUM_DESKS; d++)
+    {
+        cell[d] = CellSignature(d);
+        if (cell[d] != g_cellSig[d])
+            gridChanged = TRUE;
+    }
+    if (iconic != g_wasIconic)
+    {
+        gridChanged = TRUE;
+        for (d = 0; d < NUM_DESKS; d++)
+            g_cellSig[d] = 0;           /* repaint every cell */
+        g_wasIconic = iconic;
+    }
     blink = BlinkSignature();
 
-    if (IsIconic(g_hwndMain))
+    if (iconic)
     {
-        if (grid != g_gridSig || blink != g_blinkSig)
+        if (gridChanged || blink != g_blinkSig)
             InvalidateRect(g_hwndMain, NULL, TRUE);
-        g_gridSig  = grid;
+        for (d = 0; d < NUM_DESKS; d++)
+            g_cellSig[d] = cell[d];
         g_blinkSig = blink;
-        g_listSig  = 0;         /* refill the list when restored */
+        g_listSig  = 0;         /* refill the lists when restored */
+        g_minSig   = 0;
         return;
     }
 
-    if (grid != g_gridSig)
+    if (gridChanged)
     {
-        SetRect(&rc, 0, 0, CLIENT_W, GRID_BOTTOM);
-        InvalidateRect(g_hwndMain, &rc, FALSE);
-        g_gridSig  = grid;
-        g_blinkSig = blink;
-        g_blinkMask = 0;
         for (d = 0; d < NUM_DESKS; d++)
-            if (CorePending(d))
-                g_blinkMask |= 1 << d;
+            if (cell[d] != g_cellSig[d])
+            {
+                CellRect(d, &rc);
+                InvalidateRect(g_hwndMain, &rc, FALSE);
+                g_cellSig[d] = cell[d];
+            }
     }
-    else if (blink != g_blinkSig)
+
+    if (blink != g_blinkSig)
     {
         /* Only the blinking: repaint just those thumbnails, not the
            other cells (D-092). A cell that stops blinking is repainted
@@ -478,13 +543,21 @@ void PagerRefresh(void)
         g_blinkSig  = blink;
     }
 
-    list = ListSignature();
+    list = Mix(ListSig(CW_WINDOWS), (DWORD)ListDesk());
     if (list != g_listSig)
     {
-        UpdateList();
+        UpdateWinList();
         SetRect(&rc, 0, GRID_BOTTOM, CLIENT_W, LIST_Y);
         InvalidateRect(g_hwndMain, &rc, FALSE);
         g_listSig = list;
+    }
+    mins = ListSig(CW_MINIMIZED);
+    if (mins != g_minSig)
+    {
+        UpdateMinList();
+        SetRect(&rc, 0, LIST_Y + LIST_H, CLIENT_W, MINLIST_Y);
+        InvalidateRect(g_hwndMain, &rc, FALSE);
+        g_minSig = mins;
     }
 }
 
@@ -535,7 +608,7 @@ static void PaintThumbnails(HDC hdc, int desk, const RECT *tr)
     HWND wins[MAX_LIST];
     int cx = GetSystemMetrics(SM_CXSCREEN);
     int cy = GetSystemMetrics(SM_CYSCREEN);
-    int i, n = CoreWindows(desk, wins, MAX_LIST, FALSE);
+    int i, n = CoreWindows(desk, wins, MAX_LIST, CW_THUMBS);
     HRGN rgn;
 
     rgn = CreateRectRgn(tr->left, tr->top, tr->right, tr->bottom);
@@ -599,7 +672,7 @@ static void PaintCell(HDC hdc, int desk)
     wsprintf(text, "Desktop %d", desk + 1);
     old = SelectObject(hdc, g_fontBold);
     SetBkMode(hdc, TRANSPARENT);
-    SetTextColor(hdc, active ? GetSysColor(COLOR_CAPTIONTEXT) : RGB(0, 0, 0));
+    SetTextColor(hdc, active ? ActiveText() : RGB(0, 0, 0));
     lr.left += 4;
     lr.bottom -= 1;
     DrawText(hdc, text, -1, &lr, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
@@ -687,6 +760,9 @@ void PagerPaint(HWND hwnd)
     SetTextColor(hdc, RGB(0, 0, 0));
     SetRect(&rc, 0, GRID_BOTTOM, CLIENT_W, LIST_Y);
     ExtTextOut(hdc, MARGIN, HEADER_Y + 1, ETO_OPAQUE, &rc, text, lstrlen(text), NULL);
+    wsprintf(text, "Minimized applications (%d):", g_minCount);
+    SetRect(&rc, 0, LIST_Y + LIST_H, CLIENT_W, MINLIST_Y);
+    ExtTextOut(hdc, MARGIN, MINHDR_Y + 1, ETO_OPAQUE, &rc, text, lstrlen(text), NULL);
     SetBkMode(hdc, TRANSPARENT);
 
     /* Status bar: a sunken panel with the shortcut hint */
@@ -718,11 +794,17 @@ void PagerMouseMove(int x, int y)
     }
 }
 
+/* Clicking a cell activates the pager (Windows does it on the click) and
+   switches desktop; the pager stays active and in front (D-095, D-101). */
 void PagerClick(int x, int y)
 {
     int cell = CellAt(x, y);
-    if (cell >= 0)
-        SwitchTo(cell);
+    if (cell >= 0 && cell != g_current)
+    {
+        if (GetActiveWindow() != g_hwndMain)
+            SetActiveWindow(g_hwndMain);
+        SwitchToNav(cell);
+    }
 }
 
 /* Smart toggle (DESIGN.md section 3):
@@ -760,14 +842,14 @@ static void About(void)
 /* Double click in the window list: like Switch To in the Task List
    (D-077). A minimized window is restored; the focus goes to the window,
    or to its active dialog if it has one. A single click does nothing. */
-static void ListDoubleClick(void)
+static void ListDoubleClick(HWND lb)
 {
-    int i = (int)SendMessage(g_hwndList, LB_GETCURSEL, 0, 0L);
+    int i = (int)SendMessage(lb, LB_GETCURSEL, 0, 0L);
     HWND h;
 
     if (i < 0)
         return;
-    h = (HWND)LOWORD(SendMessage(g_hwndList, LB_GETITEMDATA, i, 0L));
+    h = (HWND)LOWORD(SendMessage(lb, LB_GETITEMDATA, i, 0L));
     if (!IsWindow(h))
         return;
     if (IsIconic(h))
@@ -779,10 +861,10 @@ static void ListDoubleClick(void)
 
 BOOL PagerCommand(WPARAM id, LPARAM lParam)
 {
-    if (id == ID_LIST)
+    if (id == ID_LIST || id == ID_MINLIST)
     {
         if (HIWORD(lParam) == LBN_DBLCLK)
-            ListDoubleClick();
+            ListDoubleClick(id == ID_LIST ? g_hwndList : g_hwndMinList);
         return TRUE;
     }
 
@@ -852,7 +934,12 @@ BOOL PagerCreate(HWND hwnd)
                               LBS_OWNERDRAWFIXED | LBS_NOINTEGRALHEIGHT,  /* items are drawn unselected: the list is informative */
                               MARGIN, LIST_Y, CLIENT_W - 2 * MARGIN, LIST_H,
                               hwnd, (HMENU)ID_LIST, g_hInst, NULL);
-    return g_hwndList != NULL;
+    g_hwndMinList = CreateWindow("LISTBOX", "",
+                              WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL | LBS_NOTIFY |
+                              LBS_OWNERDRAWFIXED | LBS_NOINTEGRALHEIGHT,
+                              MARGIN, MINLIST_Y, CLIENT_W - 2 * MARGIN, MINLIST_H,
+                              hwnd, (HMENU)ID_MINLIST, g_hInst, NULL);
+    return g_hwndList != NULL && g_hwndMinList != NULL;
 }
 
 void PagerDestroy(void)

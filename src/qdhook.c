@@ -30,6 +30,8 @@ static HHOOK     g_hKeyboard = NULL;
 static HHOOK     g_hCbt      = NULL;
 static HWND      g_hwndMain  = NULL;
 static BOOL      g_switching = FALSE;
+static HWND      g_noActivate = NULL;  /* activation blocked (QDBlockActivation) */
+static DWORD     g_sysModalTick = 0;   /* last CBT event with a system-modal box */
 
 static BOOL IsDown(int vk)
 {
@@ -75,11 +77,21 @@ static BOOL IsTopLevel(HWND h)
 
 LRESULT CALLBACK _export CbtProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
+    /* A system-modal box suspends the other applications (QuadDesk too),
+       but the hook still runs: note when one was last seen. */
+    if (GetSysModalWindow() != NULL)
+        g_sysModalTick = GetTickCount();
+
     if (g_hwndMain)
     {
         switch (nCode)
         {
         case HCBT_ACTIVATE:
+            /* QuadDesk restores Program Manager without activating it, but
+               Program Manager activates itself when it is restored: that
+               activation is refused while QuadDesk does it. */
+            if (g_noActivate && (HWND)wParam == g_noActivate)
+                return 1L;
             if (!g_switching)
                 PostMessage(g_hwndMain, WM_QD_ACTIVATE, wParam, 0L);
             break;
@@ -121,6 +133,19 @@ void QDAPI QDRemove(void)
     if (g_hKeyboard) { UnhookWindowsHookEx(g_hKeyboard); g_hKeyboard = NULL; }
     if (g_hCbt)      { UnhookWindowsHookEx(g_hCbt);      g_hCbt      = NULL; }
     g_hwndMain = NULL;
+}
+
+/* GetTickCount() of the last CBT event seen while a system-modal box was
+   on screen (0 if never). */
+DWORD QDAPI QDLastSysModal(void)
+{
+    return g_sysModalTick;
+}
+
+/* Refuses every activation of hwnd until called again with NULL. */
+void QDAPI QDBlockActivation(HWND hwnd)
+{
+    g_noActivate = hwnd;
 }
 
 /* While QuadDesk itself activates windows during a switch, activations

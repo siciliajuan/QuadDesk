@@ -21,15 +21,21 @@ extern HINSTANCE g_hInst;
 extern HWND      g_hwndMain;
 extern int       g_current;            /* active desktop, 0..3          */
 
-void SwitchTo(int desk);
+void SwitchTo(int desk);               /* Task List, Alt+Tab               */
+void SwitchToNav(int desk);            /* shortcuts and pager cells        */
 void ActivateTopWindow(void);
 
-/* Windows of a desktop in Z order, topmost first.
-   forList = FALSE: windows to draw as thumbnails (not minimized).
-   forList = TRUE:  windows for the list (like the Task List: windows
-                    without owner, minimized ones included).
+/* Windows of a desktop in Z order, topmost first. Modes:
+   CW_THUMBS     windows to draw as thumbnails (not minimized);
+   CW_WINDOWS    rows of the window list: open windows without owner;
+   CW_MINIMIZED  rows of the minimized list: every minimized application
+                 (the same on every desktop), Program Manager first when
+                 it belongs there.
    Returns the number of handles stored in out. */
-int  CoreWindows(int desk, HWND *out, int max, BOOL forList);
+#define CW_THUMBS     0
+#define CW_WINDOWS    1
+#define CW_MINIMIZED  2
+int  CoreWindows(int desk, HWND *out, int max, int mode);
 
 /* On-screen rectangle of a window, also while it is parked. */
 void CoreWindowRect(HWND h, RECT *rc);
@@ -55,6 +61,7 @@ void    PagerMouseMove(int x, int y);
 void    PagerClick(int x, int y);
 BOOL    PagerCommand(WPARAM id, LPARAM lParam); /* menus and the list     */
 void    PagerToggle(void);             /* Ctrl+Alt+Shift+Space              */
+void    PagerSetActive(BOOL active);   /* WM_ACTIVATE of the pager          */
 void    PagerMeasureItem(MEASUREITEMSTRUCT FAR *mis);
 void    PagerDrawItem(DRAWITEMSTRUCT FAR *dis);
 

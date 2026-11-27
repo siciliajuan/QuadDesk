@@ -31,5 +31,7 @@
 BOOL QDAPI QDInstall(HWND hwndMain);
 void QDAPI QDRemove(void);
 void QDAPI QDSetSwitching(BOOL switching);
+void QDAPI QDBlockActivation(HWND hwnd);
+DWORD QDAPI QDLastSysModal(void);
 
 #endif /* QDHOOK_H */

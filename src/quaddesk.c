@@ -58,6 +58,7 @@ typedef struct tagWINREC
     int  x, y;      /* on-screen position while parked       */
     DWORD born;     /* GetTickCount() when QuadDesk found it */
     BOOL iconic;    /* it was minimized when it was parked   */
+    BOOL wasIconic; /* minimized at the last Sync()          */
 } WINREC;
 
 /* Windows activates a window when it is created. During this time after
@@ -71,6 +72,11 @@ int              g_current = 0;
 static WINREC    g_win[MAX_WINDOWS];
 static int       g_count   = 0;
 static HWND      g_focus[NUM_DESKS];   /* last active window of each desktop */
+static HWND      g_lastActive;         /* last activation accepted on the
+                                          current desktop (pager included) */
+static DWORD     g_sysModalTick;       /* last time a system-modal box was
+                                          seen on screen                    */
+#define SYSMODAL_MS  1000
 static HWND      g_pending[NUM_DESKS]; /* dialog that appeared while away    */
 static int       g_pmHome  = -1;       /* desktop of open Program Manager    */
 static BOOL      g_pmByUs  = FALSE;    /* QuadDesk minimized Program Manager */
@@ -176,6 +182,7 @@ static WINREC *AddRec(HWND h, int desk)
     r->parked = FALSE;
     r->x = r->y = 0;
     r->iconic = FALSE;
+    r->wasIconic = IsIconic(h);
     r->born   = GetTickCount();
     return r;
 }
@@ -226,6 +233,8 @@ BOOL CALLBACK _export AddNewProc(HWND h, LPARAM lParam)
    - moves windows put back on screen by someone else (Cascade, Tile,
      Arrange Icons) to the current desktop,
    - keeps owned windows (dialogs) on their owner's desktop. */
+static void Unpark(WINREC *r);
+
 static void Sync(void)
 {
     FARPROC lpProc;
@@ -260,6 +269,19 @@ static void Sync(void)
                     r->desk = g_current;
             }
         }
+
+        /* Minimized applications are visible on every desktop (D-096,
+           on trial): an icon is never left parked, and an icon restored
+           on another desktop now belongs to the current one. */
+        if (r->parked && IsIconic(r->hwnd))
+            Unpark(r);
+        if (!r->parked)
+        {
+            BOOL ic = IsIconic(r->hwnd);
+            if (r->wasIconic && !ic)
+                r->desk = g_current;
+            r->wasIconic = ic;
+        }
     }
 
     for (i = 0; i < g_count; i++)
@@ -274,12 +296,17 @@ static void Sync(void)
     }
 }
 
-static void Park(WINREC *r)
+/* Returns TRUE if the window was moved off screen. Minimized windows (and
+   windows they own, such as the label under the icon) are never parked:
+   their icons are visible on every desktop (D-096, on trial). */
+static BOOL Park(WINREC *r)
 {
     RECT rc;
 
     if (r->parked || !IsWindow(r->hwnd))
-        return;
+        return FALSE;
+    if (IsIconic(r->hwnd) || IsIconic(RootOwner(r->hwnd)))
+        return FALSE;
     GetWindowRect(r->hwnd, &rc);
     r->x = rc.left;
     r->y = rc.top;
@@ -287,6 +314,7 @@ static void Park(WINREC *r)
     SetWindowPos(r->hwnd, NULL, rc.left + g_offset, rc.top, 0, 0,
                  SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
     r->parked = TRUE;
+    return TRUE;
 }
 
 static void Unpark(WINREC *r)
@@ -352,7 +380,7 @@ static void PmLeave(void)
            pager keeps drawing it at the same depth in this desktop's cell
            while it is an icon (its icon moves in the Z order, D-093). */
         HWND wins[MAX_WINDOWS];
-        int i, n = CoreWindows(g_current, wins, MAX_WINDOWS, FALSE);
+        int i, n = CoreWindows(g_current, wins, MAX_WINDOWS, CW_THUMBS);
         g_pmZ = 0;
         for (i = 0; i < n; i++)
             if (wins[i] == pm)
@@ -373,8 +401,43 @@ static void PmArrive(void)
 
     if (pm && IsIconic(pm) && g_pmByUs && g_pmHome == g_current)
     {
-        ShowWindow(pm, SW_RESTORE);
+        HWND wins[MAX_WINDOWS];
+        HWND after = HWND_TOP;
+        int i, k = 0, n;
+
+        /* Where it goes in the Z order: at the depth it had among this
+           desktop's windows when it was minimized (D-093, D-103); if it
+           was on top and the pager is active, just under the pager. It is
+           put there BEFORE being restored, so it never shows in front of
+           everything, not even for an instant (D-106). */
+        if (g_pmZ > 0)
+        {
+            n = CoreWindows(g_current, wins, MAX_WINDOWS, CW_THUMBS);
+            for (i = 0; i < n; i++)
+            {
+                if (wins[i] == pm)
+                    continue;
+                after = wins[i];                /* last one if too few */
+                if (++k == g_pmZ)
+                    break;
+            }
+        }
+        else if (GetActiveWindow() == g_hwndMain &&
+                 IsWindowVisible(g_hwndMain) && !IsIconic(g_hwndMain))
+            after = g_hwndMain;
+
+        SetWindowPos(pm, after, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        /* Restored without activating it (D-104); Program Manager activates
+           itself when restored, so the hook refuses that activation while
+           QuadDesk restores it (D-105). The focus is decided afterwards by
+           the switch. */
+        QDBlockActivation(pm);
+        ShowWindow(pm, SW_SHOWNOACTIVATE);
+        QDBlockActivation(NULL);
         g_pmByUs = FALSE;
+        SetWindowPos(pm, after, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     }
 }
 
@@ -459,6 +522,28 @@ void ActivateTopWindow(void)
     SetActiveWindow(pm ? pm : g_hwndMain);
 }
 
+/* Gives the focus back to the last window activated on the current
+   desktop (the pager included), or to the desktop's usual window if that
+   one is gone (D-106, D-107). */
+static void RestoreLastActive(void)
+{
+    HWND last = g_lastActive;
+    WINREC *lr = last ? FindRec(last) : NULL;
+    HWND pm = PmWindow();
+    BOOL ok = last && IsWindow(last) && IsWindowVisible(last) &&
+              !IsIconic(last) &&
+              (last == g_hwndMain ||
+               (lr && lr->desk == g_current && !lr->parked) ||
+               (last == pm && g_pmHome == g_current));
+
+    QDSetSwitching(TRUE);
+    if (ok)
+        SetActiveWindow(last);
+    else
+        ActivateTopWindow();
+    QDSetSwitching(FALSE);
+}
+
 /* Called periodically: a dialog or message box opened by an application
    that lives on another desktop is parked with its owner, so it stays on
    that desktop until the user goes there. */
@@ -470,6 +555,8 @@ static void ParkStrays(void)
 
     if (g_ending)
         return;
+    if (GetSysModalWindow() != NULL)
+        g_sysModalTick = GetTickCount();
     Sync();
     PmTrack();
     for (i = 0; i < g_count; i++)
@@ -477,32 +564,92 @@ static void ParkStrays(void)
         {
             char cls[16];
 
-            Park(&g_win[i]);
+            if (!Park(&g_win[i]))
+                continue;
             parkedAny = TRUE;
             GetClassName(g_win[i].hwnd, cls, sizeof(cls));
             if (lstrcmp(cls, "#32770") == 0)
                 g_pending[g_win[i].desk] = g_win[i].hwnd;
         }
 
-    /* Never leave the keyboard focus on a window that just went away. */
+    /* Never leave the keyboard focus on a window that just went away. A
+       new dialog of another desktop was activated by Windows when it was
+       created: give the focus back to the window that had it before (the
+       pager too), not to the desktop's remembered window (D-106). */
     active = FindRec(GetActiveWindow());
     if (parkedAny && active && active->parked)
-    {
-        QDSetSwitching(TRUE);
-        ActivateTopWindow();
-        QDSetSwitching(FALSE);
-    }
+        RestoreLastActive();
 }
 
-void SwitchTo(int desk)
+/* The pager while navigating (D-101, on trial): for switches made with
+   Ctrl+Alt+Shift+arrows or a pager cell,
+   - if the pager is open and active, it stays active and in front (a
+     pending dialog does not take the focus);
+   - if it is open but inactive, it stays inactive, and on each desktop it
+     goes back to the depth it had among that desktop's windows. */
+static int g_pagerZ[NUM_DESKS] = { -1, -1, -1, -1 };
+
+static BOOL PagerOpen(void)
+{
+    return IsWindowVisible(g_hwndMain) && !IsIconic(g_hwndMain);
+}
+
+/* Number of windows of the current desktop above the pager. */
+static int PagerDepth(void)
+{
+    HWND wins[MAX_WINDOWS];
+    HWND h;
+    int i, n = CoreWindows(g_current, wins, MAX_WINDOWS, CW_THUMBS);
+    int depth = 0;
+
+    for (h = GetWindow(GetDesktopWindow(), GW_CHILD); h && h != g_hwndMain;
+         h = GetWindow(h, GW_HWNDNEXT))
+        for (i = 0; i < n; i++)
+            if (wins[i] == h)
+            {
+                depth++;
+                break;
+            }
+    return depth;
+}
+
+/* Puts the inactive pager back at its remembered depth on this desktop. */
+static void PagerRestoreDepth(void)
+{
+    HWND wins[MAX_WINDOWS];
+    int n, depth = g_pagerZ[g_current];
+
+    if (depth <= 0)
+        return;                         /* unknown or on top: leave it */
+    n = CoreWindows(g_current, wins, MAX_WINDOWS, CW_THUMBS);
+    if (n == 0)
+        return;
+    if (depth > n)
+        depth = n;
+    SetWindowPos(g_hwndMain, wins[depth - 1], 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+}
+
+static void DoSwitch(int desk, BOOL nav)
 {
     int i;
+    BOOL keepActive = FALSE, keepDepth = FALSE;
 
     if (desk < 0 || desk >= NUM_DESKS || desk == g_current)
         return;
 
     Sync();
     PmTrack();
+    if (nav && PagerOpen())
+    {
+        if (GetActiveWindow() == g_hwndMain)
+            keepActive = TRUE;
+        else
+        {
+            keepDepth = TRUE;
+            g_pagerZ[g_current] = PagerDepth();
+        }
+    }
     QDSetSwitching(TRUE);
 
     /* Remember which window had the focus on the desktop we are leaving. */
@@ -526,9 +673,38 @@ void SwitchTo(int desk)
             Unpark(&g_win[i]);
     PmArrive();
 
-    ActivateTopWindow();
+    if (keepActive)
+    {
+        /* The pager keeps the focus; a pending dialog here waits (it is
+           visible on this desktop now, so it no longer blinks). */
+        g_pending[g_current] = NULL;
+        BringWindowToTop(g_hwndMain);
+        if (GetActiveWindow() != g_hwndMain)    /* PmArrive may activate */
+            SetActiveWindow(g_hwndMain);
+    }
+    else
+    {
+        ActivateTopWindow();
+        if (keepDepth)
+            PagerRestoreDepth();
+    }
     QDSetSwitching(FALSE);
+    g_lastActive = GetActiveWindow();
     PagerRefresh();
+}
+
+/* Switch requested by the system (Task List, Alt+Tab): the chosen window
+   gets the focus as usual. */
+void SwitchTo(int desk)
+{
+    DoSwitch(desk, FALSE);
+}
+
+/* Switch made by the user while navigating: Ctrl+Alt+Shift+arrows or a
+   pager cell (D-101). */
+void SwitchToNav(int desk)
+{
+    DoSwitch(desk, TRUE);
 }
 
 static int Neighbour(int desk, int dir)
@@ -561,6 +737,25 @@ static void OnActivate(HWND h)
     r = FindRec(h);
     if (r && GetTickCount() - r->born < NEW_WINDOW_MS)
         return;                 /* just created: Windows activated it */
+
+    /* Remember the last window activated on this desktop (D-106). */
+    if (h == g_hwndMain ||
+        (r && !r->parked && r->desk == g_current) ||
+        (h == PmWindow() && !IsIconic(h) && g_pmHome == g_current))
+        g_lastActive = h;
+
+    /* A system-modal box was just closed: Windows gives the focus back to
+       its owner, which may be on another desktop. The box was shown here,
+       so the user stays here, with the focus where it was (D-107). */
+    if (r && r->parked && r->desk != g_current &&
+        (GetSysModalWindow() != NULL ||
+         GetTickCount() - g_sysModalTick < SYSMODAL_MS ||
+         GetTickCount() - QDLastSysModal() < SYSMODAL_MS))
+    {
+        RestoreLastActive();
+        return;
+    }
+
     if (r && r->parked && r->desk != g_current)
     {
         /* The window the user chose gets the focus on arrival, not the
@@ -573,10 +768,21 @@ static void OnActivate(HWND h)
 /* ------------------------------------------------------------------ */
 /* Information for the pager (qdcore.h)                                */
 
-int CoreWindows(int desk, HWND *out, int max, BOOL forList)
+int CoreWindows(int desk, HWND *out, int max, int mode)
 {
     HWND h, pm = PmWindow();
+    BOOL pmIcon   = pm && IsIconic(pm);
+    /* For the user, Program Manager minimized by QuadDesk is still open on
+       its own desktop (D-076). */
+    BOOL pmOpenHere = pm && g_pmHome == desk && (!pmIcon || g_pmByUs);
     int n = 0;
+
+    /* Minimized list: Program Manager always first when it belongs there
+       (D-097, on trial): on every desktop where it is not open. While it
+       is open on one desktop, on the others it is an icon, so it is listed
+       there even if it is not minimized right now (D-104). */
+    if (mode == CW_MINIMIZED && pm && !pmOpenHere && n < max)
+        out[n++] = pm;
 
     for (h = GetWindow(GetDesktopWindow(), GW_CHILD);
          h && n < max; h = GetWindow(h, GW_HWNDNEXT))
@@ -585,28 +791,32 @@ int CoreWindows(int desk, HWND *out, int max, BOOL forList)
 
         if (h == pm)
         {
-            /* Program Manager is present on every desktop (a window on its
-               own, an icon on the others), so it is in every list (D-082).
-               As a thumbnail it is only drawn in its own desktop's cell,
-               also while QuadDesk keeps it minimized (D-076). */
-            if (forList)
-                take = TRUE;
-            else if (!IsIconic(pm))
-                take = (g_pmHome == desk);
-            /* minimized by QuadDesk: inserted below at its remembered depth */
+            /* Open on this desktop: a thumbnail and a row of the window
+               list, in Z order. Minimized by QuadDesk: inserted below at
+               its remembered depth (D-093). */
+            if (!pmIcon)
+                take = (mode != CW_MINIMIZED && g_pmHome == desk);
         }
         else
         {
             WINREC *r = FindRec(h);
-            if (r && r->desk == desk && IsWindowVisible(h))
+            if (r && IsWindowVisible(h))
             {
-                if (forList)
-                    take = (GetWindow(h, GW_OWNER) == NULL);
-                else
+                char cls[16];
+                switch (mode)
                 {
-                    char cls[16];
+                case CW_THUMBS:
                     GetClassName(h, cls, sizeof(cls));
-                    take = !IsIconic(h) && lstrcmp(cls, "#32772") != 0;
+                    take = r->desk == desk && !IsIconic(h) &&
+                           lstrcmp(cls, "#32772") != 0;
+                    break;
+                case CW_WINDOWS:        /* open windows of this desktop */
+                    take = r->desk == desk && !IsIconic(h) &&
+                           GetWindow(h, GW_OWNER) == NULL;
+                    break;
+                case CW_MINIMIZED:      /* every minimized application */
+                    take = IsIconic(h) && GetWindow(h, GW_OWNER) == NULL;
+                    break;
                 }
             }
         }
@@ -614,9 +824,7 @@ int CoreWindows(int desk, HWND *out, int max, BOOL forList)
             out[n++] = h;
     }
 
-    /* Program Manager minimized by QuadDesk is drawn in its desktop's cell
-       at the depth it had when it was minimized (D-076, D-093). */
-    if (!forList && pm && IsIconic(pm) && g_pmByUs && g_pmHome == desk && n < max)
+    if (mode != CW_MINIMIZED && pm && pmIcon && g_pmByUs && g_pmHome == desk && n < max)
     {
         int i, at = g_pmZ < n ? g_pmZ : n;
         for (i = n; i > at; i--)
@@ -762,7 +970,7 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
         if (wParam == QD_SHOW)
             PagerToggle();
         else
-            SwitchTo(Neighbour(g_current, (int)wParam));
+            SwitchToNav(Neighbour(g_current, (int)wParam));
         return 0;
 
     case WM_PAINT:
@@ -801,6 +1009,10 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             ActivateTopWindow();
             return 0;
         }
+        break;
+
+    case WM_ACTIVATE:
+        PagerSetActive(wParam != WA_INACTIVE);
         break;
 
     case WM_SIZE:

@@ -56,7 +56,8 @@ kept in the same directory.
 ```
 src/        C sources
 docs/       design specification (DESIGN.md) and decision log (DECISIONS.md)
-tests/      manual test guides for each milestone
+tests/      manual test guides for each milestone, the full QA plan (QA.TXT)
+            and the QDQA.EXE QA tool (tests/qdqa)
 build.sh    build script for Linux and macOS
 BUILD.BAT   build script for DOS and Windows
 ```

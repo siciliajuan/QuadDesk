@@ -23,8 +23,14 @@ if errorlevel 1 goto error
 wlink op q system windows file quaddesk.obj file pager.obj library qdhook.lib name quaddesk.exe option stack=8k option heapsize=4k
 if errorlevel 1 goto error
 
+echo Building QDQA.EXE (QA tool, not part of QuadDesk)
+wcc -q -bt=windows -ml -zw -ox -w4 -fo=qdqa.obj ..\TESTS\QDQA\QDQA.C
+if errorlevel 1 goto error
+wlink op q system windows file qdqa.obj name qdqa.exe option stack=8k option heapsize=4k
+if errorlevel 1 goto error
+
 cd ..
-echo Done: BUILD\QUADDESK.EXE and BUILD\QDHOOK.DLL
+echo Done: BUILD\QUADDESK.EXE, BUILD\QDHOOK.DLL and BUILD\QDQA.EXE
 goto end
 
 :nowatcom

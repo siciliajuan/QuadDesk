@@ -1,0 +1,242 @@
+QUADDESK - PLAN DE QA COMPLETO
+==============================
+
+Repasa todo lo decidido: hito 1 (núcleo), hito 2 (pager) y los cambios en
+prueba (D-095 a D-101). Usa QDQA.EXE para crear todo tipo de ventanas.
+
+Cómo informar: para cada paso, "Sección.paso OK" o "Sección.paso FALLO:
+qué viste". Si algo falla, una foto ayuda mucho.
+
+Escritorios:   1  2
+               3  4
+
+
+0. PREPARACIÓN
+--------------
+  0.1 Copia en C:\QUADDESK: QUADDESK.EXE, QDHOOK.DLL y QDQA.EXE.
+  0.2 Arranca Windows a 640x480, con el Administrador de programas
+      abierto (ventana normal).
+  0.3 Ejecuta QUADDESK.EXE. Ejecuta QDQA.EXE en el escritorio 1.
+  QDQA: cada botón crea un tipo de ventana ("QA n - ..."). Con la casilla
+  "Abrir a los 5 segundos" marcada, se crea 5 s después de pulsarlo, para
+  que te dé tiempo a cambiar de escritorio. "Cerrar las de prueba" las
+  cierra todas. Las ventanas de prueba tienen el icono de STOP.
+
+
+1. CAMBIAR DE ESCRITORIO
+------------------------
+  1.1 Abre el Bloc de notas y la Calculadora en el 1. Recorre los cuatro
+      escritorios con Ctrl+Alt+Mayús+flechas.
+      - Cada escritorio muestra solo sus ventanas; al volver, todo está
+        en su sitio.
+  1.2 Desde el 1, Ctrl+Alt+Mayús+Flecha izquierda o arriba.
+      - No pasa nada (no hay escritorio en esa dirección).
+  1.3 Memoria de foco: en el 1 activa la Calculadora; vete al 2 y vuelve
+      con el teclado.
+      - La Calculadora vuelve a estar activa.
+  1.4 El atajo no llega a las aplicaciones: pulsa los atajos con el Bloc
+      de notas activo.
+      - El Bloc de notas no escribe ni hace nada raro.
+
+
+2. VENTANAS MAXIMIZADAS Y MINIMIZADAS
+-------------------------------------
+  2.1 QDQA > Ventana maximizada. Cambia de escritorio y vuelve.
+      - Sigue maximizada y en su sitio.
+  2.2 QDQA > Ventana minimizada. Recorre los escritorios.
+      - Su icono se ve en todos (D-096) y aparece en "Minimized
+        applications" en todos.
+  2.3 Restaura ese icono (doble clic) estando en el escritorio 3.
+      - Se abre en el 3 y ya pertenece al 3 (celda 3 del pager).
+  2.4 Minimiza varias ventanas en escritorios distintos.
+      - Los iconos no se montan unos encima de otros.
+
+
+3. LISTA DE TAREAS Y ALT+TAB
+----------------------------
+  3.1 Con ventanas en el 1, vete al 2. Ctrl+Esc, elige una del 1,
+      "Cambiar a".
+      - QuadDesk salta al 1 y esa ventana queda activa.
+  3.2 Igual con Alt+Tab.
+  3.3 En el 1, abre dos ventanas y deja activa la segunda. Vete al 2 y
+      elige la PRIMERA en la Lista de tareas.
+      - Queda activa la primera.
+  3.4 Elige en la Lista de tareas una aplicación minimizada de otro
+      escritorio.
+      - Se abre en el escritorio actual; QuadDesk no salta (D-096).
+  3.5 Terminar tarea sobre una ventana de otro escritorio.
+      - QuadDesk te lleva a su escritorio (D-048).
+
+
+4. AVISOS Y DIÁLOGOS (QDQA, casilla de 5 s marcada)
+---------------------------------------------------
+  Para cada uno: pulsa el botón en el escritorio 1 y pasa al 2 antes de
+  5 s. Haz cada prueba DOS veces: con el pager inactivo (clic en otra
+  ventana antes de cambiar) y con el pager activo.
+  4.1 Aviso con propietaria.
+      - Puede asomar un instante y se va al escritorio 1. Tú sigues en
+        el 2. La celda 1 parpadea (y el icono vivo, si está minimizado).
+      - Vuelve al 1 con el pager INACTIVO: el aviso queda delante y
+        activo (D-060).
+      - Vuelve al 1 con el pager ACTIVO: el pager sigue activo y el
+        aviso espera en el 1 sin recibir el foco (D-101).
+  4.2 Aviso sin propietaria: igual que 4.1.
+  4.3 Diálogo no modal con propietaria: igual que 4.1.
+  4.4 Diálogo no modal sin propietaria: igual que 4.1.
+  4.5 Aviso de sistema.
+      - Aparece en el escritorio en el que estás (el 2) y bloquea todo
+        hasta aceptarlo. Es lo esperado para avisos de sistema.
+      - Al aceptarlo, sigues en el 2, con el foco donde estaba (el pager
+        si estaba activo). QuadDesk NO salta al 1 (D-107).
+  4.5b Con el pager ACTIVO en el 2, cuando salta un aviso del 1:
+      - La barra del pager puede cambiar de color un instante, pero el
+        pager vuelve a quedar activo (D-106).
+  4.6 Mientras parpadea una celda, mira las demás.
+      - Solo parpadea la celda del aviso.
+  4.7 Diálogo modal (sin casilla de 5 s): con el diálogo abierto, activa
+      otra ventana y haz doble clic en QDQA en la lista del pager.
+      - Queda activo el diálogo, no QDQA (bloqueado).
+  4.8 Un aviso aparece justo mientras cambias de escritorio (pulsa el
+      atajo hacia el segundo 5).
+      - QuadDesk no salta solo a otro escritorio.
+
+
+5. VENTANAS ESPECIALES (QDQA)
+-----------------------------
+  5.1 Ventana siempre encima. Cambia de escritorio.
+      - Se queda en su escritorio, como cualquier otra (D-022).
+  5.2 Emergente sin propietaria y emergente con propietaria. Cambia de
+      escritorio y vuelve.
+      - Las dos se quedan en el escritorio 1. La "con propietaria" va
+        siempre con QDQA.
+  5.3 Oculta que aparece a los 5 s: púlsalo en el 1 y pasa al 2.
+      - Aparece en el escritorio en el que estás cuando se muestra (el 2).
+  5.4 Se mueve sola: déjala en el 1.
+      - En el 1, su miniatura la sigue en el pager.
+      - Vete al 2: no debe aparecer en el 2 aunque siga moviéndose.
+  5.5 Título que cambia.
+      - Su título en la lista del pager se actualiza cada segundo, sin
+        que parpadee el resto del pager.
+
+
+6. CASCADA, MOSAICO Y ORGANIZAR ICONOS
+--------------------------------------
+  6.1 Reparte ventanas en varios escritorios. Lista de tareas > Cascada.
+      - Aparecen las de todos los escritorios y se quedan en el actual.
+  6.2 Igual con Mosaico.
+  6.3 Organizar iconos con iconos de varios escritorios.
+      - Se ordenan todos juntos.
+  6.4 El Administrador de programas, como icono, no viene con Cascada
+      (D-062).
+
+
+7. ADMINISTRADOR DE PROGRAMAS
+-----------------------------
+  7.1 Abierto en el 1, pasa al 2.
+      - En el 2 es un icono. En la celda 1 se sigue dibujando su ventana.
+  7.2 Vuelve al 1 sin tocar el icono.
+      - Se abre solo, como estaba. Pruébalo también MAXIMIZADO: debe
+        volver maximizado (D-104).
+      - Con el pager activo, el pager no parpadea al llegar.
+  7.3 Abierto en el 1, pasa al 2 y haz doble clic en su icono.
+      - Se abre en el 2 y pasa a pertenecer al 2.
+  7.4 Minimízalo tú.
+      - Icono en todos los escritorios; nunca se abre solo.
+  7.5 Listas del pager:
+      - Abierto en el escritorio listado: en "Windows on desktop N".
+      - En los demás casos: el PRIMERO en "Minimized applications".
+      - Estando en su escritorio (abierto), pasa el ratón por otras
+        celdas: en ellas sale el PRIMERO en "Minimized applications".
+  7.6 Pon el Bloc de notas encima de él y pasa a un escritorio vacío.
+      - En su celda, el Bloc de notas sigue encima.
+  7.7 En el 1, pon otra ventana ENCIMA del Administrador de programas
+      (abierto). Vete al 2, activa el pager y vuelve al 1 con el teclado.
+      - El Administrador de programas sigue DEBAJO de esa ventana; el
+        pager sigue activo (D-103).
+  7.8 Repite 7.7 con el pager inactivo, y con DOS ventanas encima.
+      - Sigue debajo; el foco va a la ventana que estaba activa en el 1.
+  7.9 Cierra QuadDesk con el Administrador de programas minimizado y
+      vuelve a abrir QuadDesk.
+      - Aparece en "Minimized applications" desde el principio.
+
+
+8. PAGER
+--------
+  8.1 Aspecto: cuatro celdas, dos listas (5 y 3 filas), barra de estado.
+      Cabe entero a 640x480 (unos 442 px de alto).
+  8.2 Menús: Options > Preferences en gris; Help: todo en gris salvo
+      About, que muestra la versión. El menú de sistema añade lo mismo.
+  8.3 Miniaturas: a escala, con su icono a 32x32 si cabe; maximizadas
+      sin franja gris; las minimizadas no se dibujan.
+  8.4 Pasa el ratón por las celdas.
+      - Cambia la lista de ventanas (también al cruzar los huecos, sin
+        parpadeo). La lista de minimizadas NO se repinta.
+  8.5 Doble clic en una ventana de la lista: pasa delante y activa. En
+      una minimizada: se restaura en el escritorio actual. Un clic: nada.
+  8.6 Color de la celda activa: con el pager activo, el de la barra de
+      título activa; inactivo, el de la barra inactiva. Borde negro.
+  8.7 Cambia el esquema de colores (Panel de control > Colores).
+      - El pager se adapta sin reiniciar.
+  8.8 Ctrl+Alt+Mayús+Espacio: activo -> se minimiza; minimizado -> vuelve
+      activo; tapado o inactivo -> pasa delante y activo.
+  8.9 Icono vivo: rejilla 2x2 con el escritorio activo en azul marino;
+      cambia al instante; los avisos pendientes parpadean.
+
+
+9. EL PAGER AL NAVEGAR (D-101)
+------------------------------
+  9.1 Pager activo: cambia con el teclado y con las celdas.
+      - Sigue activo y delante. Solo cambian dos celdas y la lista.
+  9.2 Pager inactivo entre dos ventanas (Write encima, Bloc de notas
+      debajo). Cambia al 2 con el teclado y vuelve.
+      - Sigue inactivo y entre las dos.
+  9.3 Pager inactivo, cambia a un escritorio vacío.
+      - Sigue inactivo; foco al icono del Administrador de programas.
+  9.4 Lista de tareas, Alt+Tab y doble clic en la lista: la ventana
+      elegida recibe el foco, como siempre.
+
+
+10. MENÚS DESPLEGABLES
+----------------------
+  10.1 Con un menú abierto, cambia de escritorio y vuelve.
+       - Los menús siguen funcionando en todas las aplicaciones.
+  10.2 Los menús nunca aparecen en el pager.
+
+
+11. SALIR Y APAGAR
+------------------
+  11.1 Reparte ventanas y cierra QuadDesk.
+       - Todas vuelven a la pantalla, en su sitio.
+  11.2 Abre QuadDesk, deja el Administrador de archivos y el Reloj (en
+       una esquina) en el 2 y sal de Windows sin cerrar QuadDesk.
+       - Al volver, el Administrador de archivos y el Reloj se abren
+         enteros y en su sitio.
+  11.3 Con el Administrador de programas minimizado por QuadDesk, sal de
+       Windows.
+       - Al volver, aparece abierto, no como icono.
+  11.4 Pulsa "Cancelar" en un "¿Guardar cambios?" durante la salida.
+       - Las ventanas vuelven a sus escritorios.
+
+
+12. RESOLUCIÓN MAYOR (opcional)
+-------------------------------
+  12.1 A 800x600 o 1024x768, repite las secciones 1 y 11.
+       - Una ventana que asoma por el borde derecho se comporta como
+         cualquier otra.
+
+
+13. RENDIMIENTO
+---------------
+  13.1 Con el pager abierto y varias ventanas, escribe en Write y mueve
+       ventanas: el equipo no va más lento.
+  13.2 Con todo quieto un minuto: el pager no se repinta (salvo avisos).
+
+
+PROBLEMAS CONOCIDOS (no hace falta informar)
+--------------------------------------------
+  - Al cerrar una ventana, el icono del Administrador de programas puede
+    quedar activo y por delante de otra ventana (D-089, después de v1.0).
+  - La posición en Z del Administrador de programas puede variar en
+    algunos casos (D-090, después de v1.0).
+  - Los atajos no funcionan con una sesión de MS-DOS a pantalla
+    completa.
