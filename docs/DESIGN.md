@@ -382,7 +382,7 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   arriving at Program Manager's desktop shows Program Manager in front of
   everything (pager included) for a fraction of a second when it overlaps
   the pager. Findings: restoring a minimized window puts it on top for an
-  instant even if it was placed at its depth before (D-108); Program
+  instant even if it was placed at its depth before (D-106; the one-go placement of D-108 was reverted, D-111); Program
   Manager activates itself when restored (blocked by D-105); restoring it
   off screen (D-109, reverted) made the transition visible, and giving
   back its normal/maximized placement with SetWindowPlacement brought it
