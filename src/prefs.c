@@ -59,7 +59,7 @@ static BOOL Validate(HWND dlg)
         msg[0] = '\0';
         ShortcutText(k[r], text);
         if ((k[r] >> 8 & (QD_MOD_CTRL | QD_MOD_ALT)) == 0)
-            wsprintf(msg, "The shortcut for \"%s\" must include Ctrl or Alt.",
+            wsprintf(msg, "The shortcut for \"%s\" must include at least one of Ctrl or Alt.",
                      (LPSTR)g_rowName[r]);
         else if (Reserved(k[r]))
             wsprintf(msg, "%s is reserved by Windows.\n\n"

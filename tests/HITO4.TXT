@@ -43,9 +43,8 @@ PRUEBA 2 - CAMBIAR ATAJOS
        aplicación activa como teclas normales.
      - La barra de estado del pager dice "Ctrl+Alt+Arrows".
   2. Cambia solo "Up" a Ctrl+Alt+Shift+Up Arrow.
-     - Las cuatro ya no son iguales: la barra de estado muestra el atajo
-       de mostrar/ocultar, "Show/hide: Ctrl+Alt+Shift+Space". Se lee
-       entero, sin cortarse.
+     - Las cuatro ya no son iguales: la barra de estado muestra solo el
+       atajo de mostrar/ocultar, sin etiqueta: "Ctrl+Alt+Shift+Space".
   3. Show/hide: Ctrl+Alt+Q. OK.
      - Ctrl+Alt+Q muestra y oculta QuadDesk como antes el Espacio.
   4. Los modificadores tienen que ser exactos: con Ctrl+Alt+Q,

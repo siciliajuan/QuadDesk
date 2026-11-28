@@ -946,7 +946,7 @@ static HFONT MakeFont(int weight)
 
 /* Status bar hint, from the shortcuts: "Ctrl+Alt+Shift+Arrows" when the
    four navigation shortcuts are the arrow keys with the same modifiers;
-   otherwise the show/hide shortcut (D-129). */
+   otherwise the show/hide shortcut alone, with no label (D-129, D-136). */
 void PagerSettingsChanged(void)
 {
     WORD mods = g_set.key[QD_UP] >> 8;
@@ -968,8 +968,7 @@ void PagerSettingsChanged(void)
     }
     else
     {
-        lstrcpy(g_hint, "Show/hide: ");
-        ShortcutText(g_set.key[QD_SHOW], g_hint + lstrlen(g_hint));
+        ShortcutText(g_set.key[QD_SHOW], g_hint);
     }
     if (g_hwndMain)
         InvalidateRect(g_hwndMain, NULL, FALSE);

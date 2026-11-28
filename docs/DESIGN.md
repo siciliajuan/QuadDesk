@@ -317,7 +317,8 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   soon as OK is pressed (D-131). [decided]
 - Pager status bar: "Ctrl+Alt+Shift+Arrows" (with the real modifiers)
   when the four navigation shortcuts are the arrows with the same
-  modifiers; otherwise the show/hide shortcut, "Show/hide: …" (D-129).
+  modifiers; otherwise only the show/hide shortcut, with no label
+  (D-129, D-136).
   [decided]
 - Groups: [decided]
   1. **Shortcuts:** Up, Down, Left, Right, Show/hide QuadDesk. Each row has
@@ -568,5 +569,5 @@ issues to revisit").
 | 2 — Pager (v0.2) | **Done.** All tests (tests/HITO2.TXT) passed on the real 486 on 2026-11-26. UI texts in English only. |
 | 2b — Pager improvements (v0.3) | **Done.** Full QA (tests/QA.TXT) passed on the real 486 on 2026-11-27, except the known issues kept for after v1.0. |
 | 3 — Moving windows (v0.4) | **Done.** All tests (tests/HITO3.TXT) passed on the real 486 on 2026-11-28; three new issues kept for after v1.0 (D-120). |
-| 4 — Preferences, CPL, languages (v0.5) | In progress: part A passed on the real 486 on 2026-11-28; part B (CPL) in test |
+| 4 — Preferences, CPL, languages (v0.5) | In progress: parts A and B passed on the real 486 on 2026-11-28 (HITO4.TXT tests 1 to 15, QA.TXT); part C (languages) next |
 | 5 — Help, readme, setup (v0.6) | Not started |
