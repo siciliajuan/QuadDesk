@@ -1,7 +1,7 @@
 /*
  * prefs.c - Preferences dialog (DESIGN.md section 8)
  *
- * Shared by QUADDESK.EXE and QUADDESK.CPL (D-125). The dialog template is
+ * Shared by QUADDESK.EXE and QDESK.CPL (D-125). The dialog template is
  * DLG_PREFS (prefs.h).
  */
 #include <windows.h>

@@ -1,7 +1,7 @@
 /*
  * ctl3d.c - 3D look with CTL3D.DLL, when it is installed (DESIGN.md
  * section 8). Loaded at run time: without it, the normal Windows 3.1 look
- * and no error. Shared by QUADDESK.EXE and QUADDESK.CPL.
+ * and no error. Shared by QUADDESK.EXE and QDESK.CPL.
  */
 #include <windows.h>
 #include "settings.h"

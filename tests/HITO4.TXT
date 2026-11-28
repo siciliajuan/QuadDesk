@@ -4,9 +4,10 @@ QUADDESK - PRUEBA DEL HITO 4 (PREFERENCIAS, CPL E IDIOMAS, v0.5)
 El hito se prueba en tres partes. La parte A (pruebas 1 a 8) ya pasó en
 el 486 el 28/11/2026; la parte B empieza en la prueba 9.
 
-Sustituye QUADDESK.EXE y QDHOOK.DLL, y copia QUADDESK.CPL en el mismo
-directorio. Los textos están todavía en inglés: el español llega en la
-parte C.
+Sustituye QUADDESK.EXE y QDHOOK.DLL, y copia QDESK.CPL en el mismo
+directorio. Borra el QUADDESK.CPL de pruebas anteriores (el CPL se llama
+ahora QDESK.CPL) y cambia su línea en CONTROL.INI. Los textos están
+todavía en inglés: el español llega en la parte C.
 
 Para volver a los valores por defecto en cualquier momento: cierra
 QuadDesk y borra QUADDESK.INI del directorio de Windows (C:\WINDOWS).
@@ -121,22 +122,22 @@ PRUEBA 7 - ASPECTO 3D (OPCIONAL)
   Sin CTL3D.DLL: aspecto normal de Windows 3.1, sin ningún error.
 
 
-PARTE B - PANEL DE CONTROL (QUADDESK.CPL)
+PARTE B - PANEL DE CONTROL (QDESK.CPL)
 =========================================
 
 Preparación: en C:\WINDOWS\CONTROL.INI añade (o amplía) la sección
 
   [MMCPL]
-  QuadDesk=C:\QUADDESK\QUADDESK.CPL
+  QuadDesk=C:\QUADDESK\QDESK.CPL
 
-con la ruta real donde tengas QuadDesk (QUADDESK.EXE y QUADDESK.CPL
+con la ruta real donde tengas QuadDesk (QUADDESK.EXE y QDESK.CPL
 juntos). Lo hará el programa de instalación en la v0.6.
 
 Guarda CONTROL.INI y cierra el Panel de control si estaba abierto: solo
 lee esa sección al arrancar.
 
 Si el icono no aparece, ejecuta QDCPLT.EXE (herramienta de prueba, en el
-mismo directorio que QUADDESK.CPL): comprueba la entrada de CONTROL.INI,
+mismo directorio que QDESK.CPL): comprueba la entrada de CONTROL.INI,
 carga el CPL como lo hace el Panel de control y muestra el resultado de
 cada paso. Envíame una foto de su mensaje.
 
@@ -183,7 +184,7 @@ PRUEBA 12 - CON QUADDESK CERRADO
      "Start QuadDesk with Windows". OK.
      - No sale ningún error.
      - WIN.INI: load= tiene la ruta completa de QUADDESK.EXE (la del
-       directorio de QUADDESK.CPL).
+       directorio de QDESK.CPL).
   2. Abre QuadDesk.
      - Usa el atajo que cambiaste.
   3. Desmarca "Start QuadDesk with Windows" desde el Panel de control.

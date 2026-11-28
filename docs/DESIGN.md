@@ -307,7 +307,7 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 ## 8. Preferences
 
 - Opened from `Options ▸ Preferences...`, from the system menu of the pager or
-  its icon, and from `QUADDESK.CPL` in the Control Panel. [decided]
+  its icon, and from `QDESK.CPL` in the Control Panel. [decided]
 - Native Windows 3.1 dialog (CTL3D look when available). Buttons: `OK`
   (default), `Cancel`, `Help`; `Help` is added with the help files in v0.6,
   until then it is not shown (D-130). Must fit in 640×480. [decided]
@@ -333,7 +333,7 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   restarting QuadDesk (D-124). [decided]
 - Settings are kept in `QUADDESK.INI` in the Windows directory (D-121).
   [decided]
-- `QUADDESK.CPL` has its own copy of the dialog (the same source compiled
+- `QDESK.CPL` has its own copy of the dialog (the same source compiled
   into both). It writes QUADDESK.INI and, if QuadDesk is running, tells it
   to reload the settings; if QuadDesk is not running, the settings are only
   saved and apply the next time it starts (D-125). [decided]
@@ -368,7 +368,7 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   Preferences. Setup installs both. [decided]
 - Every text goes in the language DLLs: menus, messages, dialogs, the
   "Move to Desktop ▸ / Desktop N" entries of the system menu, the cell
-  labels and the About box. `QUADDESK.CPL` uses the same DLLs (D-126).
+  labels and the About box. `QDESK.CPL` uses the same DLLs (D-126).
   [decided]
 - If the DLL of the detected language is missing, the English one is used;
   if both are missing, a fixed English message is shown and QuadDesk does
@@ -382,7 +382,7 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 |---|---|
 | `QUADDESK.EXE` | Main program |
 | `QDHOOK.DLL` | System hooks (keyboard, CBT, mouse) |
-| `QUADDESK.CPL` | Control Panel applet |
+| `QDESK.CPL` | Control Panel applet (not QUADDESK.CPL: D-134) |
 | `QDESKEN.DLL` / `QDESKES.DLL` | English / Spanish resources |
 | `QUADDESK.HLP` / `QDESK_ES.HLP` | English / Spanish help |
 | `QUADDESK.INI` | Settings |
@@ -395,7 +395,7 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 
 - **Setup:** own SETUP program, in the same style as the author's
   win31-calc-unified project, on floppy. [decided]
-- `QUADDESK.CPL` is registered in the `[MMCPL]` section of CONTROL.INI
+- `QDESK.CPL` is registered in the `[MMCPL]` section of CONTROL.INI
   (nothing is copied to the SYSTEM directory). [decided]
 - Program Manager group **QuadDesk** with the program, help, readme and
   uninstaller. No icon in the StartUp group. [decided]
@@ -543,9 +543,9 @@ here first. [decided — D-063 to D-067]
   (hidden mode and its warning), start with Windows. No sound option
   (D-122).
 - Delivered in three parts, each tested on the 486 before the next
-  (D-128): A, the dialog and QUADDESK.INI; B, `QUADDESK.CPL`; C, the
+  (D-128): A, the dialog and QUADDESK.INI; B, `QDESK.CPL`; C, the
   language DLLs. Test guide `tests/HITO4.TXT`, plus QA.TXT for regression.
-- `QUADDESK.CPL` (section 12, registration only).
+- `QDESK.CPL` (section 12, registration only).
 - Resource DLLs `QDESKEN.DLL` and `QDESKES.DLL`, language from WIN.INI
   (section 10).
 

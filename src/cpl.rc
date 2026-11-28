@@ -1,5 +1,5 @@
 /*
- * cpl.rc - QUADDESK.CPL resources (English; milestone 4 part C moves the
+ * cpl.rc - QDESK.CPL resources (English; milestone 4 part C moves the
  * texts to the language DLLs, D-126)
  */
 #include <windows.h>

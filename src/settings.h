@@ -1,7 +1,7 @@
 /*
  * settings.h - QuadDesk preferences (DESIGN.md section 8)
  *
- * Shared by QUADDESK.EXE and QUADDESK.CPL: QUADDESK.INI in the Windows
+ * Shared by QUADDESK.EXE and QDESK.CPL: QUADDESK.INI in the Windows
  * directory (D-121), the "load=" line of WIN.INI and the Preferences dialog.
  */
 #ifndef SETTINGS_H

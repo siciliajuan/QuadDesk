@@ -31,7 +31,7 @@ if errorlevel 1 goto error
 wlink op q system windows file quaddesk.obj file pager.obj file settings.obj file prefs.obj file ctl3d.obj library qdhook.lib name quaddesk.exe option stack=8k option heapsize=4k option resource=quaddesk.res
 if errorlevel 1 goto error
 
-echo Building QUADDESK.CPL
+echo Building QDESK.CPL
 wcc -q -bt=windows -ml -zw -ox -w4 -i=..\SRC -bd -zu -fo=cpl.obj ..\SRC\CPL.C
 if errorlevel 1 goto error
 wcc -q -bt=windows -ml -zw -ox -w4 -i=..\SRC -bd -zu -fo=settingsd.obj ..\SRC\SETTINGS.C
@@ -42,7 +42,7 @@ wcc -q -bt=windows -ml -zw -ox -w4 -i=..\SRC -bd -zu -fo=ctl3dd.obj ..\SRC\CTL3D
 if errorlevel 1 goto error
 wrc -q -r -bt=windows -i=..\SRC -fo=cpl.res ..\SRC\CPL.RC
 if errorlevel 1 goto error
-wlink op q system windows_dll file cpl.obj file settingsd.obj file prefsd.obj file ctl3dd.obj name quaddesk.cpl option resource=cpl.res option description 'CPL:QuadDesk' option modname=QDESKCPL
+wlink op q system windows_dll file cpl.obj file settingsd.obj file prefsd.obj file ctl3dd.obj name qdesk.cpl option resource=cpl.res option description 'CPL:QuadDesk' option modname=QDESK
 if errorlevel 1 goto error
 
 echo Building QDQA.EXE (QA tool, not part of QuadDesk)
@@ -58,7 +58,7 @@ wlink op q system windows file cpltest.obj name qdcplt.exe option stack=8k optio
 if errorlevel 1 goto error
 
 cd ..
-echo Done: BUILD\QUADDESK.EXE, BUILD\QDHOOK.DLL, BUILD\QUADDESK.CPL and BUILD\QDQA.EXE
+echo Done: BUILD\QUADDESK.EXE, BUILD\QDHOOK.DLL, BUILD\QDESK.CPL and BUILD\QDQA.EXE
 goto end
 
 :nowatcom

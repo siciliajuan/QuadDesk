@@ -1,8 +1,8 @@
 /*
- * cpltest.c - QDCPLT.EXE: checks QUADDESK.CPL the way Control Panel uses
+ * cpltest.c - QDCPLT.EXE: checks QDESK.CPL the way Control Panel uses
  * it, and reports every step. Test tool, not part of QuadDesk.
  *
- * Usage: run it from the directory that holds QUADDESK.CPL, or give the
+ * Usage: run it from the directory that holds QDESK.CPL, or give the
  * path of the CPL on the command line.
  */
 #include <windows.h>
@@ -54,7 +54,7 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR cmd, int show)
     else if (buf[0])
         lstrcpy(path, buf);
     else
-        lstrcpy(path, "QUADDESK.CPL");
+        lstrcpy(path, "QDESK.CPL");
     Add("Testing: %s", path, 0);
 
     old = SetErrorMode(SEM_NOOPENFILEERRORBOX);

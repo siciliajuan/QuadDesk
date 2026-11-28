@@ -12,7 +12,7 @@
 - With "Show icon" off, minimizing hides QuadDesk completely; the
   show/hide shortcut brings it back.
 - 3D look for the dialog and messages when CTL3D.DLL is installed.
-- QUADDESK.CPL: the same Preferences in the Control Panel, also with
+- QDESK.CPL: the same Preferences in the Control Panel, also with
   QuadDesk closed or hidden; a running QuadDesk applies the changes at once.
 - The pager's status bar follows the shortcuts.
 

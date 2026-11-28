@@ -35,7 +35,7 @@ wlink op q system windows file quaddesk.obj file pager.obj file settings.obj \
       file prefs.obj file ctl3d.obj library qdhook.lib name quaddesk.exe \
       option stack=8k option heapsize=4k option resource=quaddesk.res
 
-echo "Building QUADDESK.CPL"
+echo "Building QDESK.CPL"
 DFLAGS="$CFLAGS -bd -zu"
 wcc $DFLAGS -fo=cpl.obj ../src/cpl.c
 wcc $DFLAGS -fo=settingsd.obj ../src/settings.c
@@ -43,8 +43,8 @@ wcc $DFLAGS -fo=prefsd.obj ../src/prefs.c
 wcc $DFLAGS -fo=ctl3dd.obj ../src/ctl3d.c
 wrc -q -r -bt=windows -i=../src -fo=cpl.res ../src/cpl.rc
 wlink op q system windows_dll file cpl.obj file settingsd.obj file prefsd.obj \
-      file ctl3dd.obj name quaddesk.cpl option resource=cpl.res \
-      option description 'CPL:QuadDesk' option modname=QDESKCPL
+      file ctl3dd.obj name qdesk.cpl option resource=cpl.res \
+      option description 'CPL:QuadDesk' option modname=QDESK
 
 echo "Building QDQA.EXE (QA tool, not part of QuadDesk)"
 wcc $CFLAGS -fo=qdqa.obj ../tests/qdqa/qdqa.c
@@ -54,4 +54,4 @@ echo "Building QDCPLT.EXE (CPL test tool, not part of QuadDesk)"
 wcc $CFLAGS -fo=cpltest.obj ../tests/cpltest/cpltest.c
 wlink op q system windows file cpltest.obj name qdcplt.exe option stack=8k option heapsize=4k
 
-echo "Done: $OUT/quaddesk.exe, $OUT/qdhook.dll, $OUT/quaddesk.cpl and $OUT/qdqa.exe"
+echo "Done: $OUT/quaddesk.exe, $OUT/qdhook.dll, $OUT/qdesk.cpl and $OUT/qdqa.exe"

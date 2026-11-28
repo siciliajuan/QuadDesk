@@ -1,6 +1,6 @@
 /*
  * prefsdlg.rc - Preferences dialog template, shared by QUADDESK.EXE and
- * QUADDESK.CPL. The Help button comes with the help files (v0.6, D-130).
+ * QDESK.CPL. The Help button comes with the help files (v0.6, D-130).
  */
 DLG_PREFS DIALOG 20, 20, 274, 176
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU

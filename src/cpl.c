@@ -1,5 +1,5 @@
 /*
- * cpl.c - QUADDESK.CPL, the Control Panel applet (DESIGN.md sections 8
+ * cpl.c - QDESK.CPL, the Control Panel applet (DESIGN.md sections 8
  * and 12)
  *
  * Opens its own copy of the Preferences dialog (same source as
@@ -9,9 +9,10 @@
  *
  * Registered by Setup in the [MMCPL] section of CONTROL.INI.
  *
- * Its module name is QDESKCPL (build.sh), not QUADDESK: Windows 3.1 knows
- * loaded modules by name, and with the same name as QUADDESK.EXE one of
- * the two could not be loaded while the other was in memory (D-133).
+ * Its file and module name are QDESK, not QUADDESK: Windows 3.1 takes a
+ * module as already loaded when the file name (without extension) or the
+ * module name matches one in memory, so QUADDESK.CPL and QUADDESK.EXE
+ * could not be loaded at the same time (D-133, D-134).
  *
  * Copyright (c) 2026 Juan Sicilia
  * Released under the MIT License. See LICENSE.
@@ -71,7 +72,7 @@ int FAR PASCAL _export WEP(int nParam)
     return 1;
 }
 
-/* QUADDESK.EXE is next to QUADDESK.CPL (for the load= line of WIN.INI). */
+/* QUADDESK.EXE is next to QDESK.CPL (for the load= line of WIN.INI). */
 static void ExePath(char *buf, int size)
 {
     char *p, *name;
