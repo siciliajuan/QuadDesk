@@ -42,13 +42,19 @@ wcc -q -bt=windows -ml -zw -ox -w4 -i=..\SRC -bd -zu -fo=ctl3dd.obj ..\SRC\CTL3D
 if errorlevel 1 goto error
 wrc -q -r -bt=windows -i=..\SRC -fo=cpl.res ..\SRC\CPL.RC
 if errorlevel 1 goto error
-wlink op q system windows_dll file cpl.obj file settingsd.obj file prefsd.obj file ctl3dd.obj name quaddesk.cpl option resource=cpl.res option description 'CPL:QuadDesk'
+wlink op q system windows_dll file cpl.obj file settingsd.obj file prefsd.obj file ctl3dd.obj name quaddesk.cpl option resource=cpl.res option description 'CPL:QuadDesk' option modname=QDESKCPL
 if errorlevel 1 goto error
 
 echo Building QDQA.EXE (QA tool, not part of QuadDesk)
 wcc -q -bt=windows -ml -zw -ox -w4 -fo=qdqa.obj ..\TESTS\QDQA\QDQA.C
 if errorlevel 1 goto error
 wlink op q system windows file qdqa.obj name qdqa.exe option stack=8k option heapsize=4k
+if errorlevel 1 goto error
+
+echo Building QDCPLT.EXE (CPL test tool, not part of QuadDesk)
+wcc -q -bt=windows -ml -zw -ox -w4 -fo=cpltest.obj ..\TESTS\CPLTEST\CPLTEST.C
+if errorlevel 1 goto error
+wlink op q system windows file cpltest.obj name qdcplt.exe option stack=8k option heapsize=4k
 if errorlevel 1 goto error
 
 cd ..

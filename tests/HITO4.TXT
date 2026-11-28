@@ -132,6 +132,14 @@ Preparación: en C:\WINDOWS\CONTROL.INI añade (o amplía) la sección
 con la ruta real donde tengas QuadDesk (QUADDESK.EXE y QUADDESK.CPL
 juntos). Lo hará el programa de instalación en la v0.6.
 
+Guarda CONTROL.INI y cierra el Panel de control si estaba abierto: solo
+lee esa sección al arrancar.
+
+Si el icono no aparece, ejecuta QDCPLT.EXE (herramienta de prueba, en el
+mismo directorio que QUADDESK.CPL): comprueba la entrada de CONTROL.INI,
+carga el CPL como lo hace el Panel de control y muestra el resultado de
+cada paso. Envíame una foto de su mensaje.
+
 
 PRUEBA 9 - EL ICONO EN EL PANEL DE CONTROL
 ------------------------------------------
@@ -191,7 +199,19 @@ PRUEBA 13 - VALIDACIÓN Y AVISO EN EL PANEL DE CONTROL
      - Sale el mismo aviso; Cancel vuelve a marcarla.
 
 
-PRUEBA 14 - REGRESIÓN
+PRUEBA 14 - PANEL DE CONTROL Y QUADDESK A LA VEZ
+-------------------------------------------------
+  1. Cierra QuadDesk. Abre el Panel de control (sin abrir el applet) y,
+     con él abierto, abre QuadDesk.
+     - QuadDesk arranca normalmente.
+  2. Con QuadDesk abierto, cierra el Panel de control y vuelve a abrirlo.
+     - El icono de QuadDesk aparece.
+  3. Con los dos abiertos, abre las preferencias desde el Panel de
+     control, cambia un atajo y OK.
+     - QuadDesk usa el atajo nuevo al momento.
+
+
+PRUEBA 15 - REGRESIÓN
 --------------------
   Con los atajos por defecto (borra QUADDESK.INI), repite QA.TXT, al
   menos las secciones 1, 3, 4, 7, 8 y 9, y las pruebas 1 y 4 de HITO3.TXT.
