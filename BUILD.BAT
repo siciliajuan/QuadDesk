@@ -20,7 +20,29 @@ wcc -q -bt=windows -ml -zw -ox -w4 -i=..\SRC -fo=quaddesk.obj ..\SRC\QUADDESK.C
 if errorlevel 1 goto error
 wcc -q -bt=windows -ml -zw -ox -w4 -i=..\SRC -fo=pager.obj ..\SRC\PAGER.C
 if errorlevel 1 goto error
-wlink op q system windows file quaddesk.obj file pager.obj library qdhook.lib name quaddesk.exe option stack=8k option heapsize=4k
+wcc -q -bt=windows -ml -zw -ox -w4 -i=..\SRC -fo=settings.obj ..\SRC\SETTINGS.C
+if errorlevel 1 goto error
+wcc -q -bt=windows -ml -zw -ox -w4 -i=..\SRC -fo=prefs.obj ..\SRC\PREFS.C
+if errorlevel 1 goto error
+wcc -q -bt=windows -ml -zw -ox -w4 -i=..\SRC -fo=ctl3d.obj ..\SRC\CTL3D.C
+if errorlevel 1 goto error
+wrc -q -r -bt=windows -i=..\SRC -fo=quaddesk.res ..\SRC\QUADDESK.RC
+if errorlevel 1 goto error
+wlink op q system windows file quaddesk.obj file pager.obj file settings.obj file prefs.obj file ctl3d.obj library qdhook.lib name quaddesk.exe option stack=8k option heapsize=4k option resource=quaddesk.res
+if errorlevel 1 goto error
+
+echo Building QUADDESK.CPL
+wcc -q -bt=windows -ml -zw -ox -w4 -i=..\SRC -bd -zu -fo=cpl.obj ..\SRC\CPL.C
+if errorlevel 1 goto error
+wcc -q -bt=windows -ml -zw -ox -w4 -i=..\SRC -bd -zu -fo=settingsd.obj ..\SRC\SETTINGS.C
+if errorlevel 1 goto error
+wcc -q -bt=windows -ml -zw -ox -w4 -i=..\SRC -bd -zu -fo=prefsd.obj ..\SRC\PREFS.C
+if errorlevel 1 goto error
+wcc -q -bt=windows -ml -zw -ox -w4 -i=..\SRC -bd -zu -fo=ctl3dd.obj ..\SRC\CTL3D.C
+if errorlevel 1 goto error
+wrc -q -r -bt=windows -i=..\SRC -fo=cpl.res ..\SRC\CPL.RC
+if errorlevel 1 goto error
+wlink op q system windows_dll file cpl.obj file settingsd.obj file prefsd.obj file ctl3dd.obj name quaddesk.cpl option resource=cpl.res option description 'CPL:QuadDesk'
 if errorlevel 1 goto error
 
 echo Building QDQA.EXE (QA tool, not part of QuadDesk)
@@ -30,7 +52,7 @@ wlink op q system windows file qdqa.obj name qdqa.exe option stack=8k option hea
 if errorlevel 1 goto error
 
 cd ..
-echo Done: BUILD\QUADDESK.EXE, BUILD\QDHOOK.DLL and BUILD\QDQA.EXE
+echo Done: BUILD\QUADDESK.EXE, BUILD\QDHOOK.DLL, BUILD\QUADDESK.CPL and BUILD\QDQA.EXE
 goto end
 
 :nowatcom

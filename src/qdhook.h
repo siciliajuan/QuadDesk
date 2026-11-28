@@ -38,6 +38,16 @@ void QDAPI QDSetSwitching(BOOL switching);
 void QDAPI QDBlockActivation(HWND hwnd);
 DWORD QDAPI QDLastSysModal(void);
 
+/* Shortcuts (milestone 4): one WORD per QD_LEFT..QD_SHOW, the virtual key
+   in the low byte and the modifiers in the high byte. A shortcut works
+   when exactly those modifiers are down. */
+#define QD_MOD_CTRL    0x01
+#define QD_MOD_ALT     0x02
+#define QD_MOD_SHIFT   0x04
+#define QD_NUM_KEYS    5
+#define QD_KEY(vk, mods)  ((WORD)(((mods) << 8) | (vk)))
+void QDAPI QDSetHotkeys(const WORD FAR *keys);
+
 /* Dragging windows (milestone 3) */
 BOOL QDAPI QDIsDragging(void);
 BOOL QDAPI QDEndDrag(void);          /* TRUE if a drag was in progress    */

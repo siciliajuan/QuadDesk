@@ -1,0 +1,203 @@
+QUADDESK - PRUEBA DEL HITO 4 (PREFERENCIAS, CPL E IDIOMAS, v0.5)
+================================================================
+
+El hito se prueba en tres partes. La parte A (pruebas 1 a 8) ya pasó en
+el 486 el 28/11/2026; la parte B empieza en la prueba 9.
+
+Sustituye QUADDESK.EXE y QDHOOK.DLL, y copia QUADDESK.CPL en el mismo
+directorio. Los textos están todavía en inglés: el español llega en la
+parte C.
+
+Para volver a los valores por defecto en cualquier momento: cierra
+QuadDesk y borra QUADDESK.INI del directorio de Windows (C:\WINDOWS).
+
+Escritorios:   1  2
+               3  4
+
+
+PRUEBA 1 - ABRIR EL DIÁLOGO
+---------------------------
+  1. Options > Preferences... en el pager.
+     - Se abre "QuadDesk Preferences" con tres grupos: Shortcuts, When
+       minimized y Start-up. Botones OK y Cancel (Help llega en la v0.6,
+       con la ayuda).
+     - Valores: los cinco atajos con Ctrl, Alt y Shift marcados; teclas
+       Up Arrow, Down Arrow, Left Arrow, Right Arrow y Space. "Show icon"
+       marcado. "Start QuadDesk with Windows" sin marcar.
+     - Cabe entero en la pantalla a 640x480.
+  2. Cancel. Ábrelo desde el menú de sistema del pager y después desde
+     el menú del icono (con QuadDesk minimizado).
+     - Se abre igual las tres veces.
+  3. La lista de teclas: flechas, Space, Home, End, Page Up, Page Down,
+     Insert, Delete, A-Z, 0-9 y F1-F12.
+  4. Cambia cosas y pulsa Cancel (o Esc).
+     - No cambia nada.
+
+
+PRUEBA 2 - CAMBIAR ATAJOS
+-------------------------
+  1. Quita Shift en las cuatro flechas (quedan Ctrl+Alt+flecha) y OK.
+     - Sin reiniciar: Ctrl+Alt+flechas cambian de escritorio.
+     - Ctrl+Alt+Shift+flechas ya no cambian de escritorio: llegan a la
+       aplicación activa como teclas normales.
+     - La barra de estado del pager dice "Ctrl+Alt+Arrows".
+  2. Cambia solo "Up" a Ctrl+Alt+Shift+Up Arrow.
+     - Las cuatro ya no son iguales: la barra de estado muestra el atajo
+       de mostrar/ocultar, "Show/hide: Ctrl+Alt+Shift+Space". Se lee
+       entero, sin cortarse.
+  3. Show/hide: Ctrl+Alt+Q. OK.
+     - Ctrl+Alt+Q muestra y oculta QuadDesk como antes el Espacio.
+  4. Los modificadores tienen que ser exactos: con Ctrl+Alt+Q,
+     Ctrl+Alt+Shift+Q no hace nada.
+
+
+PRUEBA 3 - VALIDACIÓN
+---------------------
+  En cada caso pulsa OK: sale un mensaje, el diálogo sigue abierto y el
+  foco queda en la fila del error (en su casilla Ctrl).
+  1. Quita Ctrl y Alt en una fila (solo Shift).
+     - "must include Ctrl or Alt".
+  2. Una fila con solo Alt y la tecla Space.
+     - "Alt+Space is reserved by Windows".
+  3. Una fila con Ctrl+Alt y Delete.
+     - "Ctrl+Alt+Delete is reserved by Windows".
+  4. Dos filas con el mismo atajo.
+     - "... is used for ... and for ...".
+
+
+PRUEBA 4 - SE GUARDA
+--------------------
+  1. Deja algún atajo cambiado, OK, cierra QuadDesk y vuelve a abrirlo.
+     - Los atajos cambiados siguen funcionando y el diálogo los muestra.
+  2. Abre C:\WINDOWS\QUADDESK.INI con el Bloc de notas.
+     - Secciones [Shortcuts] (Up=Ctrl+Alt+Up, ...) y [Options]
+       (ShowIcon=1).
+
+
+PRUEBA 5 - SIN ICONO (MODO OCULTO)
+----------------------------------
+  1. Desmarca "Show icon".
+     - Aviso: "Without an icon, QuadDesk can only be shown with the
+       shortcut ..." con el atajo de Show/hide que haya en el diálogo
+       en ese momento, y botones OK y Cancel.
+  2. Cancel.
+     - La casilla vuelve a quedar marcada.
+  3. Desmárcala otra vez, OK en el aviso y OK en el diálogo. Minimiza el
+     pager.
+     - Desaparece del todo: sin icono y sin entrada en la Lista de
+       tareas (Ctrl+Esc).
+     - El foco pasa a una ventana del escritorio actual; NO cambias de
+       escritorio.
+  4. Pulsa el atajo de Show/hide.
+     - QuadDesk aparece abierto y activo. Pulsado otra vez, se oculta.
+  5. Los atajos de las flechas siguen funcionando con QuadDesk oculto.
+  6. Vuelve a marcar "Show icon" (abre QuadDesk con el atajo).
+     - Al minimizar vuelve a salir el icono vivo.
+  7. Con QuadDesk minimizado (icono), abre Preferences desde el menú
+     del icono, desmarca "Show icon" y OK.
+     - El icono desaparece al momento (QuadDesk queda oculto).
+
+
+PRUEBA 6 - INICIAR CON WINDOWS
+------------------------------
+  1. Apunta lo que hay en la línea load= de WIN.INI (puede estar vacía).
+  2. Marca "Start QuadDesk with Windows" y OK.
+     - En WIN.INI, load= tiene lo que había más la ruta completa de
+       QUADDESK.EXE.
+  3. Sal de Windows y vuelve a entrar.
+     - QuadDesk arranca minimizado (icono vivo).
+     - Con "Show icon" desmarcado, arranca oculto: aparece con el atajo.
+  4. Desmárcalo y OK.
+     - QuadDesk desaparece de load=; lo demás que hubiera sigue igual.
+
+
+PRUEBA 7 - ASPECTO 3D (OPCIONAL)
+--------------------------------
+  Solo si tienes CTL3D.DLL en C:\WINDOWS\SYSTEM (lo instalan muchos
+  programas).
+  1. Abre Preferences.
+     - El diálogo y los mensajes tienen aspecto 3D (fondo gris, casillas
+       en relieve).
+  Sin CTL3D.DLL: aspecto normal de Windows 3.1, sin ningún error.
+
+
+PARTE B - PANEL DE CONTROL (QUADDESK.CPL)
+=========================================
+
+Preparación: en C:\WINDOWS\CONTROL.INI añade (o amplía) la sección
+
+  [MMCPL]
+  QuadDesk=C:\QUADDESK\QUADDESK.CPL
+
+con la ruta real donde tengas QuadDesk (QUADDESK.EXE y QUADDESK.CPL
+juntos). Lo hará el programa de instalación en la v0.6.
+
+
+PRUEBA 9 - EL ICONO EN EL PANEL DE CONTROL
+------------------------------------------
+  1. Abre el Panel de control.
+     - Aparece el icono "QuadDesk": la cuadrícula de 2x2 con el
+       escritorio 1 en azul marino.
+  2. Selecciónalo con un clic.
+     - En la barra de estado del Panel de control: "Sets the shortcuts
+       and options of QuadDesk virtual desktops."
+  3. Doble clic en el icono.
+     - Se abre el mismo diálogo "QuadDesk Preferences" que en el pager,
+       con los valores actuales.
+
+
+PRUEBA 10 - CON QUADDESK EN MARCHA
+----------------------------------
+  1. Con QuadDesk abierto, cambia desde el Panel de control el atajo de
+     Show/hide a Ctrl+Alt+Q y OK.
+     - Al momento, sin reiniciar QuadDesk: Ctrl+Alt+Q muestra y oculta
+       QuadDesk; Ctrl+Alt+Shift+Espacio ya no.
+     - Abre Preferences desde el pager: muestra Ctrl+Alt+Q.
+  2. Cambia las cuatro flechas a Ctrl+Alt desde el Panel de control.
+     - La barra de estado del pager pasa a "Ctrl+Alt+Arrows".
+  3. Cancel en el Panel de control.
+     - No cambia nada.
+
+
+PRUEBA 11 - CON QUADDESK OCULTO
+-------------------------------
+  1. Desmarca "Show icon" (en el pager) y minimiza QuadDesk: queda oculto.
+  2. Abre QuadDesk en el Panel de control y vuelve a marcar "Show icon".
+     - Al pulsar OK aparece el icono vivo de QuadDesk.
+  3. Ocúltalo otra vez y, desde el Panel de control, cambia el atajo de
+     Show/hide.
+     - El atajo nuevo lo muestra.
+
+
+PRUEBA 12 - CON QUADDESK CERRADO
+--------------------------------
+  1. Cierra QuadDesk. En el Panel de control, cambia un atajo y marca
+     "Start QuadDesk with Windows". OK.
+     - No sale ningún error.
+     - WIN.INI: load= tiene la ruta completa de QUADDESK.EXE (la del
+       directorio de QUADDESK.CPL).
+  2. Abre QuadDesk.
+     - Usa el atajo que cambiaste.
+  3. Desmarca "Start QuadDesk with Windows" desde el Panel de control.
+     - Desaparece de load=; lo demás sigue igual.
+
+
+PRUEBA 13 - VALIDACIÓN Y AVISO EN EL PANEL DE CONTROL
+-----------------------------------------------------
+  1. Repite, desde el Panel de control, un caso de la prueba 3 (por
+     ejemplo, dos filas iguales).
+     - Mismo mensaje y el diálogo sigue abierto.
+  2. Desmarca "Show icon".
+     - Sale el mismo aviso; Cancel vuelve a marcarla.
+
+
+PRUEBA 14 - REGRESIÓN
+--------------------
+  Con los atajos por defecto (borra QUADDESK.INI), repite QA.TXT, al
+  menos las secciones 1, 3, 4, 7, 8 y 9, y las pruebas 1 y 4 de HITO3.TXT.
+
+
+QUÉ ENVIARME
+------------
+  Para cada prueba: OK o, si falla, qué has visto exactamente. Si puedes,
+  una foto del diálogo a 640x480.

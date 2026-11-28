@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.5 - Milestone 4: preferences, Control Panel and languages (unreleased)
+
+- Preferences dialog (Options > Preferences, or the system menu of the
+  pager and its icon): the five shortcuts, "Show icon" and "Start QuadDesk
+  with Windows". Changes apply when OK is pressed.
+- Shortcuts are validated: Ctrl or Alt required, no duplicates, none
+  reserved by Windows; they need exactly the chosen modifiers.
+- Settings kept in QUADDESK.INI in the Windows directory; start-up through
+  the load= line of WIN.INI.
+- With "Show icon" off, minimizing hides QuadDesk completely; the
+  show/hide shortcut brings it back.
+- 3D look for the dialog and messages when CTL3D.DLL is installed.
+- QUADDESK.CPL: the same Preferences in the Control Panel, also with
+  QuadDesk closed or hidden; a running QuadDesk applies the changes at once.
+- The pager's status bar follows the shortcuts.
+
 ## v0.4 - Moving windows (2026-11-28)
 
 - Drag a window by its title bar onto a pager cell to send it to that

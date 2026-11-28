@@ -1,0 +1,16 @@
+/*
+ * cpl.rc - QUADDESK.CPL resources (English; milestone 4 part C moves the
+ * texts to the language DLLs, D-126)
+ */
+#include <windows.h>
+#include "prefs.h"
+
+1 ICON "quaddesk.ico"
+
+STRINGTABLE
+BEGIN
+    1, "QuadDesk"
+    2, "Sets the shortcuts and options of QuadDesk virtual desktops."
+END
+
+#include "prefsdlg.rc"

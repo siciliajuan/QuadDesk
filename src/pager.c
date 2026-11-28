@@ -28,6 +28,9 @@
 #include <windows.h>
 #include <string.h>
 #include "qdcore.h"
+#include "settings.h"
+
+extern QDSETTINGS g_set;
 
 /* ---- Layout (client coordinates, pixels) -------------------------- */
 
@@ -91,6 +94,7 @@ void PagerSetActive(BOOL active)
 
 static HWND    g_hwndList, g_hwndMinList;
 static HFONT   g_fontBold, g_fontNormal;
+static char    g_hint[48];              /* status bar: navigation shortcuts */
 static HDC     g_memDC;                 /* for drawing 16x16 icons */
 static HBITMAP g_memBmp, g_memOld;
 static int     g_hover   = -1;          /* cell under the mouse, or -1 */
@@ -774,7 +778,7 @@ void PagerPaint(HWND hwnd)
     FillSolid(hdc, rc.right - 1, rc.top, rc.right, rc.bottom, RGB(255, 255, 255));
     SelectObject(hdc, g_fontNormal);
     rc.left += 6;
-    DrawText(hdc, "Ctrl+Alt+Shift+Arrows", -1, &rc,
+    DrawText(hdc, g_hint, -1, &rc,
              DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
 
     SelectObject(hdc, old);
@@ -843,7 +847,9 @@ void PagerClick(int x, int y)
    open and active -> minimized. */
 void PagerToggle(void)
 {
-    if (IsIconic(g_hwndMain))
+    if (!IsWindowVisible(g_hwndMain))
+        ShowWindow(g_hwndMain, SW_SHOWNORMAL);          /* hidden */
+    else if (IsIconic(g_hwndMain))
         ShowWindow(g_hwndMain, SW_RESTORE);
     else if (GetActiveWindow() != g_hwndMain)
     {
@@ -852,10 +858,7 @@ void PagerToggle(void)
     }
     else
     {
-        /* Minimize without letting Windows activate a window that may be
-           parked on another desktop; QuadDesk picks the window instead. */
-        ShowWindow(g_hwndMain, SW_SHOWMINNOACTIVE);
-        ActivateTopWindow();
+        MinimizePager();
     }
 }
 
@@ -903,7 +906,9 @@ BOOL PagerCommand(WPARAM id, LPARAM lParam)
     case IDM_ABOUT:
         About();
         return TRUE;
-    case IDM_PREFS:             /* milestone 4 */
+    case IDM_PREFS:
+        OpenPreferences();
+        return TRUE;
     case IDM_CONTENTS:          /* milestone 5 */
     case IDM_SEARCH:
     case IDM_HOWTO:
@@ -921,7 +926,7 @@ static HMENU BuildMenu(void)
     HMENU opts = CreatePopupMenu();
     HMENU help = CreatePopupMenu();
 
-    AppendMenu(opts, MF_STRING | MF_GRAYED, IDM_PREFS, "&Preferences...");
+    AppendMenu(opts, MF_STRING, IDM_PREFS, "&Preferences...");
     AppendMenu(help, MF_STRING | MF_GRAYED, IDM_CONTENTS, "&Contents");
     AppendMenu(help, MF_STRING | MF_GRAYED, IDM_SEARCH, "&Search for Help On...");
     AppendMenu(help, MF_STRING | MF_GRAYED, IDM_HOWTO, "&How to Use Help");
@@ -939,6 +944,37 @@ static HFONT MakeFont(int weight)
                       VARIABLE_PITCH | FF_SWISS, "MS Sans Serif");
 }
 
+/* Status bar hint, from the shortcuts: "Ctrl+Alt+Shift+Arrows" when the
+   four navigation shortcuts are the arrow keys with the same modifiers;
+   otherwise the show/hide shortcut (D-129). */
+void PagerSettingsChanged(void)
+{
+    WORD mods = g_set.key[QD_UP] >> 8;
+    BOOL same = (g_set.key[QD_UP] & 0xFF) == VK_UP &&
+                (g_set.key[QD_DOWN] & 0xFF) == VK_DOWN &&
+                (g_set.key[QD_LEFT] & 0xFF) == VK_LEFT &&
+                (g_set.key[QD_RIGHT] & 0xFF) == VK_RIGHT &&
+                (g_set.key[QD_DOWN] >> 8) == mods &&
+                (g_set.key[QD_LEFT] >> 8) == mods &&
+                (g_set.key[QD_RIGHT] >> 8) == mods;
+
+    g_hint[0] = '\0';
+    if (same)
+    {
+        if (mods & QD_MOD_CTRL)  lstrcat(g_hint, "Ctrl+");
+        if (mods & QD_MOD_ALT)   lstrcat(g_hint, "Alt+");
+        if (mods & QD_MOD_SHIFT) lstrcat(g_hint, "Shift+");
+        lstrcat(g_hint, "Arrows");
+    }
+    else
+    {
+        lstrcpy(g_hint, "Show/hide: ");
+        ShortcutText(g_set.key[QD_SHOW], g_hint + lstrlen(g_hint));
+    }
+    if (g_hwndMain)
+        InvalidateRect(g_hwndMain, NULL, FALSE);
+}
+
 BOOL PagerCreate(HWND hwnd)
 {
     HMENU sys;
@@ -947,9 +983,10 @@ BOOL PagerCreate(HWND hwnd)
     SetMenu(hwnd, BuildMenu());
     sys = GetSystemMenu(hwnd, FALSE);
     AppendMenu(sys, MF_SEPARATOR, 0, NULL);
-    AppendMenu(sys, MF_STRING | MF_GRAYED, IDM_PREFS, "&Preferences...");
+    AppendMenu(sys, MF_STRING, IDM_PREFS, "&Preferences...");
     AppendMenu(sys, MF_STRING, IDM_ABOUT, "&About " APP_NAME "...");
 
+    PagerSettingsChanged();
     g_fontBold   = MakeFont(FW_BOLD);
     g_fontNormal = MakeFont(FW_NORMAL);
 

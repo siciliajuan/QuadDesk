@@ -41,6 +41,7 @@
 #include <string.h>
 #include "qdhook.h"
 #include "qdcore.h"
+#include "settings.h"
 
 
 #define CLASS_NAME   "QuadDeskMain"
@@ -69,6 +70,10 @@ typedef struct tagWINREC
 #define NEW_WINDOW_MS  1500
 
 HINSTANCE        g_hInst;
+QDSETTINGS       g_set;                /* preferences (settings.c)           */
+static char      g_exePath[144];       /* full path of QUADDESK.EXE          */
+static UINT      g_reloadMsg;          /* RELOAD_MSG_NAME                    */
+#define WM_QD_HIDE (WM_USER + 300)     /* hide instead of minimize           */
 HWND             g_hwndMain;
 int              g_current = 0;
 static WINREC    g_win[MAX_WINDOWS];
@@ -1119,10 +1124,70 @@ static void RecoverParkedWindows(void)
 }
 
 /* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/* Preferences (milestone 4)                                           */
+
+/* Minimizing the pager: an icon, or hidden with "Show icon" off (DESIGN
+   section 7). Windows must not activate a window that may be parked on
+   another desktop; QuadDesk picks the window instead. */
+static void HidePager(void)
+{
+    /* Hiding the active window makes Windows activate another one, maybe
+       parked on another desktop: that must not move the user there. */
+    QDSetSwitching(TRUE);
+    ShowWindow(g_hwndMain, SW_HIDE);
+    ActivateTopWindow();
+    QDSetSwitching(FALSE);
+}
+
+void MinimizePager(void)
+{
+    if (!g_set.showIcon)
+    {
+        HidePager();
+        return;
+    }
+    ShowWindow(g_hwndMain, SW_SHOWMINNOACTIVE);
+    ActivateTopWindow();
+}
+
+/* New settings take effect at once (D-124). */
+static void ApplySettings(void)
+{
+    QDSetHotkeys(g_set.key);
+    if (!g_set.showIcon && IsIconic(g_hwndMain) && IsWindowVisible(g_hwndMain))
+        HidePager();
+    else if (g_set.showIcon && !IsWindowVisible(g_hwndMain))
+        ShowWindow(g_hwndMain, SW_SHOWMINNOACTIVE);
+    PagerSettingsChanged();
+}
+
+void OpenPreferences(void)
+{
+    static BOOL open = FALSE;
+
+    if (open)
+        return;
+    open = TRUE;
+    if (PrefsDialog(g_hInst, g_hwndMain, &g_set))
+    {
+        SettingsSave(&g_set, g_exePath);
+        ApplySettings();
+    }
+    open = FALSE;
+}
+
+
 /* Main window                                                         */
 
 LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    if (msg == g_reloadMsg && g_reloadMsg != 0)
+    {
+        SettingsLoad(&g_set, g_exePath);
+        ApplySettings();
+        return 0;
+    }
     switch (msg)
     {
     case WM_CREATE:
@@ -1223,19 +1288,24 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             return 0;
         if ((wParam & 0xFFF0) == SC_MINIMIZE)
         {
-            /* Minimize without letting Windows activate a window that may
-               be parked on another desktop. */
-            ShowWindow(hwnd, SW_SHOWMINNOACTIVE);
-            ActivateTopWindow();
+            MinimizePager();
             return 0;
         }
         break;
+
+    case WM_QD_HIDE:
+        if (!g_set.showIcon && IsIconic(hwnd) && IsWindowVisible(hwnd))
+            HidePager();
+        return 0;
 
     case WM_ACTIVATE:
         PagerSetActive(wParam != WA_INACTIVE);
         break;
 
     case WM_SIZE:
+        /* Minimized some other way with "Show icon" off: hide it. */
+        if (wParam == SIZE_MINIMIZED && !g_set.showIcon)
+            PostMessage(hwnd, WM_QD_HIDE, 0, 0L);
         PagerRefresh();
         InvalidateRect(hwnd, NULL, TRUE);
         break;
@@ -1294,6 +1364,7 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     (void)lpszCmdLine;
     g_hInst = hInstance;
+    GetModuleFileName(hInstance, g_exePath, sizeof(g_exePath));
 
     if (hPrevInstance)
     {
@@ -1312,6 +1383,11 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     if (!RegisterClass(&wc))
         return 0;
 
+    SettingsLoad(&g_set, g_exePath);
+    QDSetHotkeys(g_set.key);
+    g_reloadMsg = RegisterWindowMessage(RELOAD_MSG_NAME);
+    Ctl3dStart(hInstance);
+
     /* Fixed size; first shown in the top right corner of the screen. */
     PagerOuterSize(&w, &h);
     hwnd = CreateWindow(CLASS_NAME, APP_NAME, PAGER_STYLE,
@@ -1320,13 +1396,21 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     if (!hwnd)
         return 0;
 
-    ShowWindow(hwnd, nCmdShow);
-    UpdateWindow(hwnd);
+    /* Started minimized (load= line) with "Show icon" off: stay hidden. */
+    if (!g_set.showIcon && (nCmdShow == SW_SHOWMINNOACTIVE ||
+                            nCmdShow == SW_SHOWMINIMIZED || nCmdShow == SW_MINIMIZE))
+        ;
+    else
+    {
+        ShowWindow(hwnd, nCmdShow);
+        UpdateWindow(hwnd);
+    }
 
     while (GetMessage(&msg, NULL, 0, 0))
     {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
+    Ctl3dStop();
     return msg.wParam;
 }

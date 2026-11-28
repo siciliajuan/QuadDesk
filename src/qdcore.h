@@ -10,7 +10,7 @@
 #define QDCORE_H
 
 #define APP_NAME     "QuadDesk"
-#define APP_VERSION  "0.4"
+#define APP_VERSION  "0.5"
 
 #define NUM_DESKS    4
 #define GRID_COLS    2
@@ -61,6 +61,9 @@ void    PagerMouseMove(int x, int y);
 void    PagerClick(int x, int y);
 int     PagerCellAtScreen(POINT pt, HWND dragged);   /* drop target: cell or -1            */
 BOOL    PagerCommand(WPARAM id, LPARAM lParam); /* menus and the list     */
+void    MinimizePager(void);           /* icon, or hidden ("Show icon" off)  */
+void    OpenPreferences(void);
+void    PagerSettingsChanged(void);    /* shortcuts changed: repaint hint    */
 void    PagerToggle(void);             /* Ctrl+Alt+Shift+Space              */
 void    PagerSetActive(BOOL active);   /* WM_ACTIVATE of the pager          */
 void    PagerMeasureItem(MEASUREITEMSTRUCT FAR *mis);

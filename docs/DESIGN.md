@@ -309,14 +309,34 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - Opened from `Options ▸ Preferences...`, from the system menu of the pager or
   its icon, and from `QUADDESK.CPL` in the Control Panel. [decided]
 - Native Windows 3.1 dialog (CTL3D look when available). Buttons: `OK`
-  (default), `Cancel`, `Help`. Must fit in 640×480. [decided]
+  (default), `Cancel`, `Help`; `Help` is added with the help files in v0.6,
+  until then it is not shown (D-130). Must fit in 640×480. [decided]
+- A shortcut works only with exactly its modifiers: with Ctrl+Alt+Up,
+  Ctrl+Alt+Shift+Up reaches the active application (D-131). [decided]
+- Unchecking "Show icon" while QuadDesk is minimized hides the icon as
+  soon as OK is pressed (D-131). [decided]
+- Pager status bar: "Ctrl+Alt+Shift+Arrows" (with the real modifiers)
+  when the four navigation shortcuts are the arrows with the same
+  modifiers; otherwise the show/hide shortcut, "Show/hide: …" (D-129).
+  [decided]
 - Groups: [decided]
   1. **Shortcuts:** Up, Down, Left, Right, Show/hide QuadDesk. Each row has
      `Ctrl`, `Alt`, `Shift` checkboxes and a key drop-down list (Windows 3.1
      has no hotkey control).
-  2. **When switching desktops:** `Play a sound`.
-  3. **When minimized:** `Show icon`.
-  4. **Start-up:** `Start QuadDesk with Windows` (unchecked by default).
+  2. **When minimized:** `Show icon` (checked by default).
+  3. **Start-up:** `Start QuadDesk with Windows` (unchecked by default).
+- No sound option: switching desktops is silent (D-122). [decided]
+- Key drop-down list: arrow keys, Space, A–Z, 0–9, F1–F12, Home, End,
+  Page Up, Page Down, Insert, Delete. Defaults: Ctrl+Alt+Shift+arrows and
+  Ctrl+Alt+Shift+Space (D-123). [decided]
+- Changes apply when OK is pressed: new shortcuts work at once, without
+  restarting QuadDesk (D-124). [decided]
+- Settings are kept in `QUADDESK.INI` in the Windows directory (D-121).
+  [decided]
+- `QUADDESK.CPL` has its own copy of the dialog (the same source compiled
+  into both). It writes QUADDESK.INI and, if QuadDesk is running, tells it
+  to reload the settings; if QuadDesk is not running, the settings are only
+  saved and apply the next time it starts (D-125). [decided]
 - Validation on OK: no duplicated shortcuts; none of the combinations reserved
   by Windows (Ctrl+Alt+Del, Alt+Tab, Alt+Esc, Ctrl+Esc, Alt+Space); every
   shortcut includes Ctrl or Alt. On error: message box and the dialog stays
@@ -346,6 +366,15 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
 - Language detected automatically from `sLanguage` in the `[intl]` section of
   WIN.INI (`esp`/`esn` → Spanish); English otherwise. No language option in
   Preferences. Setup installs both. [decided]
+- Every text goes in the language DLLs: menus, messages, dialogs, the
+  "Move to Desktop ▸ / Desktop N" entries of the system menu, the cell
+  labels and the About box. `QUADDESK.CPL` uses the same DLLs (D-126).
+  [decided]
+- If the DLL of the detected language is missing, the English one is used;
+  if both are missing, a fixed English message is shown and QuadDesk does
+  not start (D-127). [decided]
+- The Spanish texts are proposed by Claude as a table, reviewed by Juan,
+  then added (D-127). [decided]
 
 ## 11. Files
 
@@ -510,8 +539,12 @@ here first. [decided — D-063 to D-067]
   state.
 
 **4 — Preferences, CPL and languages (v0.5)**
-- Preferences dialog (section 8), configurable shortcuts, "Play a sound",
-  "Show icon" (hidden mode and its warning), start with Windows.
+- Preferences dialog (section 8), configurable shortcuts, "Show icon"
+  (hidden mode and its warning), start with Windows. No sound option
+  (D-122).
+- Delivered in three parts, each tested on the 486 before the next
+  (D-128): A, the dialog and QUADDESK.INI; B, `QUADDESK.CPL`; C, the
+  language DLLs. Test guide `tests/HITO4.TXT`, plus QA.TXT for regression.
 - `QUADDESK.CPL` (section 12, registration only).
 - Resource DLLs `QDESKEN.DLL` and `QDESKES.DLL`, language from WIN.INI
   (section 10).
@@ -535,5 +568,5 @@ issues to revisit").
 | 2 — Pager (v0.2) | **Done.** All tests (tests/HITO2.TXT) passed on the real 486 on 2026-11-26. UI texts in English only. |
 | 2b — Pager improvements (v0.3) | **Done.** Full QA (tests/QA.TXT) passed on the real 486 on 2026-11-27, except the known issues kept for after v1.0. |
 | 3 — Moving windows (v0.4) | **Done.** All tests (tests/HITO3.TXT) passed on the real 486 on 2026-11-28; three new issues kept for after v1.0 (D-120). |
-| 4 — Preferences, CPL, languages (v0.5) | Not started |
+| 4 — Preferences, CPL, languages (v0.5) | In progress: part A passed on the real 486 on 2026-11-28; part B (CPL) in test |
 | 5 — Help, readme, setup (v0.6) | Not started |

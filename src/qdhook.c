@@ -46,9 +46,32 @@ static BOOL      g_switching = FALSE;
 static HWND      g_noActivate = NULL;  /* activation blocked (QDBlockActivation) */
 static DWORD     g_sysModalTick = 0;   /* last CBT event with a system-modal box */
 
+/* Shortcuts, set by QuadDesk from its preferences. Default:
+   Ctrl+Alt+Shift+arrows and Ctrl+Alt+Shift+Space. Order: QD_LEFT,
+   QD_RIGHT, QD_UP, QD_DOWN, QD_SHOW. */
+#define ALL3 (QD_MOD_CTRL | QD_MOD_ALT | QD_MOD_SHIFT)
+static WORD g_keys[QD_NUM_KEYS] = {
+    QD_KEY(VK_LEFT, ALL3), QD_KEY(VK_RIGHT, ALL3), QD_KEY(VK_UP, ALL3),
+    QD_KEY(VK_DOWN, ALL3), QD_KEY(VK_SPACE, ALL3)
+};
+
 static BOOL IsDown(int vk)
 {
     return (GetKeyState(vk) & 0x8000) != 0;
+}
+
+static WORD ModsDown(void)
+{
+    return (WORD)((IsDown(VK_CONTROL) ? QD_MOD_CTRL : 0) |
+                  (IsDown(VK_MENU)    ? QD_MOD_ALT  : 0) |
+                  (IsDown(VK_SHIFT)   ? QD_MOD_SHIFT : 0));
+}
+
+void QDAPI QDSetHotkeys(const WORD FAR *keys)
+{
+    int i;
+    for (i = 0; i < QD_NUM_KEYS; i++)
+        g_keys[i] = keys[i];
 }
 
 LRESULT CALLBACK _export KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
@@ -60,18 +83,19 @@ LRESULT CALLBACK _export KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
     if (nCode >= 0 && g_hwndMain)
     {
-        int dir = -1;
+        int dir = -1, i;
+        WORD mods = 0xFFFF;
 
-        switch (wParam)
-        {
-        case VK_LEFT:  dir = QD_LEFT;  break;
-        case VK_RIGHT: dir = QD_RIGHT; break;
-        case VK_UP:    dir = QD_UP;    break;
-        case VK_DOWN:  dir = QD_DOWN;  break;
-        case VK_SPACE: dir = QD_SHOW;  break;
-        }
+        for (i = 0; i < QD_NUM_KEYS && dir < 0; i++)
+            if ((WORD)wParam == (g_keys[i] & 0xFF))
+            {
+                if (mods == 0xFFFF)
+                    mods = ModsDown();
+                if (mods == (g_keys[i] >> 8))
+                    dir = i;
+            }
 
-        if (dir >= 0 && IsDown(VK_CONTROL) && IsDown(VK_MENU) && IsDown(VK_SHIFT))
+        if (dir >= 0)
         {
             /* Act only once: on HC_ACTION, key going down, not auto-repeat.
                Every other event of the combination is swallowed too, so the

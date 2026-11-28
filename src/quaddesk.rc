@@ -1,0 +1,9 @@
+/*
+ * quaddesk.rc - QuadDesk resources (English; milestone 4 part C moves the
+ * texts to the language DLLs, D-126)
+ */
+#include <windows.h>
+#include "prefs.h"
+
+#include "prefsdlg.rc"
+
