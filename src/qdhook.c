@@ -8,6 +8,12 @@
  *                Ctrl+Alt+Shift+Space to show or hide QuadDesk), swallows
  *                them and tells QuadDesk which one was pressed.
  *
+ *   WH_MOUSE     While a window is being dragged by its title bar, detects
+ *                the button going up and reports where it was dropped.
+ *
+ *   WH_GETMESSAGE  Catches the "Move to Desktop" commands that QuadDesk adds
+ *                to the system menu of other applications' windows.
+ *
  *   WH_CBT       Reports window activations (HCBT_ACTIVATE), so QuadDesk can
  *                jump to the desktop of a window activated from the Task List
  *                or with Alt+Tab, and changes to top-level windows (created,
@@ -28,6 +34,13 @@
 static HINSTANCE g_hInst     = NULL;
 static HHOOK     g_hKeyboard = NULL;
 static HHOOK     g_hCbt      = NULL;
+static HHOOK     g_hMouse    = NULL;
+static HHOOK     g_hGetMsg   = NULL;
+static BOOL      g_dragging  = FALSE;  /* a window is being dragged         */
+static HWND      g_dragWnd   = NULL;
+static RECT      g_dragRect;           /* its rectangle when the drag began */
+static HWND      g_capWnd    = NULL;   /* title bar last pressed with mouse */
+static RECT      g_capRect;            /* that window's rectangle then      */
 static HWND      g_hwndMain  = NULL;
 static BOOL      g_switching = FALSE;
 static HWND      g_noActivate = NULL;  /* activation blocked (QDBlockActivation) */
@@ -40,6 +53,11 @@ static BOOL IsDown(int vk)
 
 LRESULT CALLBACK _export KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
+    /* Any key forgets the last title-bar press: a move that follows
+       (Alt+Space, Move) is a keyboard move, never a drop. */
+    if (nCode >= 0 && !(lParam & 0x80000000L))
+        g_capWnd = NULL;
+
     if (nCode >= 0 && g_hwndMain)
     {
         int dir = -1;
@@ -96,6 +114,30 @@ LRESULT CALLBACK _export CbtProc(int nCode, WPARAM wParam, LPARAM lParam)
                 PostMessage(g_hwndMain, WM_QD_ACTIVATE, wParam, 0L);
             break;
 
+        case HCBT_MOVESIZE:
+            /* Only a move started by pressing the title bar with the mouse
+               counts (not resizes, keyboard moves or MDI children). The
+               notification may come before the drag or when it is about to
+               be applied, with the button already up: then it ends here. */
+            if ((HWND)wParam == g_capWnd && g_capWnd != g_hwndMain &&
+                !(GetWindowLong(g_capWnd, GWL_STYLE) & WS_CHILD))
+            {
+                g_dragWnd  = g_capWnd;
+                g_dragRect = g_capRect;
+                g_capWnd   = NULL;
+                if (GetAsyncKeyState(VK_LBUTTON) & 0x8000)
+                    g_dragging = TRUE;
+                else
+                {
+                    POINT pt;
+                    g_dragging = FALSE;
+                    GetCursorPos(&pt);
+                    PostMessage(g_hwndMain, WM_QD_DRAGEND, (WPARAM)g_dragWnd,
+                                MAKELPARAM(pt.x, pt.y));
+                }
+            }
+            break;
+
         case HCBT_CREATEWND:
             if ((((LPCBT_CREATEWND)lParam)->lpcs->style & WS_CHILD) == 0)
                 PostMessage(g_hwndMain, WM_QD_CHANGED, 0, 0L);
@@ -112,6 +154,76 @@ LRESULT CALLBACK _export CbtProc(int nCode, WPARAM wParam, LPARAM lParam)
     return CallNextHookEx(g_hCbt, nCode, wParam, lParam);
 }
 
+/* End of a drag: the button goes up. The move loop sometimes swallows it;
+   QuadDesk's timer is the fallback (QDEndDrag). */
+LRESULT CALLBACK _export MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    if (nCode >= 0 && wParam == WM_NCLBUTTONDOWN)
+    {
+        MOUSEHOOKSTRUCT FAR *pm = (MOUSEHOOKSTRUCT FAR *)lParam;
+        if (pm->wHitTestCode == HTCAPTION)
+        {
+            g_capWnd = pm->hwnd;
+            GetWindowRect(g_capWnd, &g_capRect);
+        }
+        else
+            g_capWnd = NULL;
+    }
+    else if (nCode >= 0 && (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN ||
+                            wParam == WM_NCRBUTTONDOWN))
+        g_capWnd = NULL;
+
+    if (nCode >= 0 && g_dragging &&
+        (wParam == WM_LBUTTONUP || wParam == WM_NCLBUTTONUP))
+    {
+        MOUSEHOOKSTRUCT FAR *pm = (MOUSEHOOKSTRUCT FAR *)lParam;
+        g_dragging = FALSE;
+        if (g_hwndMain)
+            PostMessage(g_hwndMain, WM_QD_DRAGEND, (WPARAM)g_dragWnd,
+                        MAKELPARAM(pm->pt.x, pm->pt.y));
+    }
+    return CallNextHookEx(g_hMouse, nCode, wParam, lParam);
+}
+
+/* "Move to Desktop" in another application's system menu: the command is
+   posted to that window; QuadDesk handles it and the window never sees it. */
+LRESULT CALLBACK _export GetMsgProc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    if (nCode >= 0 && g_hwndMain)
+    {
+        MSG FAR *m = (MSG FAR *)lParam;
+        if (m->message == WM_SYSCOMMAND)
+        {
+            WORD id = (WORD)(m->wParam & 0xFFF0);
+            if (id >= QD_MOVE_ID(0) && id <= QD_MOVE_ID(3))
+            {
+                PostMessage(g_hwndMain, WM_QD_MOVETO, (WPARAM)m->hwnd,
+                            (LPARAM)((id - QD_MOVE_BASE) / 0x10));
+                m->message = WM_NULL;
+            }
+        }
+    }
+    return CallNextHookEx(g_hGetMsg, nCode, wParam, lParam);
+}
+
+BOOL QDAPI QDIsDragging(void)
+{
+    return g_dragging;
+}
+
+BOOL QDAPI QDEndDrag(void)
+{
+    BOOL was = g_dragging;
+    g_dragging = FALSE;
+    return was;
+}
+
+void QDAPI QDGetDragStart(HWND FAR *hwnd, RECT FAR *rc)
+{
+    *hwnd = g_dragWnd;
+    *rc   = g_dragRect;
+}
+
 BOOL QDAPI QDInstall(HWND hwndMain)
 {
     g_hwndMain  = hwndMain;
@@ -119,8 +231,10 @@ BOOL QDAPI QDInstall(HWND hwndMain)
 
     g_hKeyboard = SetWindowsHookEx(WH_KEYBOARD, (HOOKPROC)KeyboardProc, g_hInst, NULL);
     g_hCbt      = SetWindowsHookEx(WH_CBT,      (HOOKPROC)CbtProc,      g_hInst, NULL);
+    g_hMouse    = SetWindowsHookEx(WH_MOUSE,    (HOOKPROC)MouseProc,    g_hInst, NULL);
+    g_hGetMsg   = SetWindowsHookEx(WH_GETMESSAGE, (HOOKPROC)GetMsgProc, g_hInst, NULL);
 
-    if (g_hKeyboard == NULL || g_hCbt == NULL)
+    if (g_hKeyboard == NULL || g_hCbt == NULL || g_hMouse == NULL || g_hGetMsg == NULL)
     {
         QDRemove();
         return FALSE;
@@ -132,6 +246,10 @@ void QDAPI QDRemove(void)
 {
     if (g_hKeyboard) { UnhookWindowsHookEx(g_hKeyboard); g_hKeyboard = NULL; }
     if (g_hCbt)      { UnhookWindowsHookEx(g_hCbt);      g_hCbt      = NULL; }
+    if (g_hMouse)    { UnhookWindowsHookEx(g_hMouse);    g_hMouse    = NULL; }
+    if (g_hGetMsg)   { UnhookWindowsHookEx(g_hGetMsg);   g_hGetMsg   = NULL; }
+    g_dragging = FALSE;
+    g_capWnd   = NULL;
     g_hwndMain = NULL;
 }
 

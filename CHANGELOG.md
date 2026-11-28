@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.4 - Moving windows (2026-11-28)
+
+- Drag a window by its title bar onto a pager cell to send it to that
+  desktop; you stay where you are and the window appears in the cell.
+- "Move to Desktop" in the system menu of every window (Alt+Space, D,
+  number), with the current desktop checked; removed again on exit.
+- Program Manager can be moved; dialogs and minimized windows cannot.
+- A click on a title bar without moving no longer leaves a "moving" state.
+- QDHOOK.DLL gains a mouse hook and a message hook for this.
+- Known issues kept for after v1.0: see DESIGN.md section 13.
+
 ## v0.3 - Pager improvements (2026-11-27)
 
 - Minimized applications are visible on every desktop; restoring one opens

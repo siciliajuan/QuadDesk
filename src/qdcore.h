@@ -10,7 +10,7 @@
 #define QDCORE_H
 
 #define APP_NAME     "QuadDesk"
-#define APP_VERSION  "0.3"
+#define APP_VERSION  "0.4"
 
 #define NUM_DESKS    4
 #define GRID_COLS    2
@@ -59,6 +59,7 @@ void    PagerTick(void);               /* every 100 ms: hover and blinking  */
 void    PagerPaint(HWND hwnd);
 void    PagerMouseMove(int x, int y);
 void    PagerClick(int x, int y);
+int     PagerCellAtScreen(POINT pt, HWND dragged);   /* drop target: cell or -1            */
 BOOL    PagerCommand(WPARAM id, LPARAM lParam); /* menus and the list     */
 void    PagerToggle(void);             /* Ctrl+Alt+Shift+Space              */
 void    PagerSetActive(BOOL active);   /* WM_ACTIVATE of the pager          */

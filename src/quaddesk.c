@@ -59,6 +59,8 @@ typedef struct tagWINREC
     DWORD born;     /* GetTickCount() when QuadDesk found it */
     BOOL iconic;    /* it was minimized when it was parked   */
     BOOL wasIconic; /* minimized at the last Sync()          */
+    HMENU movePopup;/* "Move to Desktop" submenu we added    */
+    WORD menuState; /* last state applied to that submenu    */
 } WINREC;
 
 /* Windows activates a window when it is created. During this time after
@@ -81,6 +83,9 @@ static HWND      g_pending[NUM_DESKS]; /* dialog that appeared while away    */
 static int       g_pmHome  = -1;       /* desktop of open Program Manager    */
 static BOOL      g_pmByUs  = FALSE;    /* QuadDesk minimized Program Manager */
 static BOOL      g_pmExitRestored = FALSE;
+static HMENU     g_pmPopup;            /* its "Move to Desktop" submenu      */
+static HWND      g_pmMenuWnd;          /* the window it was added to         */
+static WORD      g_pmMenuState = 0xFFFF;
 static int       g_pmZ = 0;            /* its place among its desktop's
                                           windows when QuadDesk minimized it */
 static BOOL      g_ending = FALSE;     /* Windows is shutting down           */
@@ -171,6 +176,84 @@ static void RemoveRec(int i)
     g_count--;
 }
 
+/* ---- "Move to Desktop" in the system menu (D-017) -------------------
+   Added to every window QuadDesk manages (and Program Manager); the
+   commands are caught by QDHOOK.DLL. Greyed for dialogs and other owned
+   windows (D-116) and for minimized windows (D-118); in the submenu the
+   current desktop is checked and greyed. Removed again on exit. */
+
+static HMENU AddMoveMenu(HWND h)
+{
+    HMENU sys = GetSystemMenu(h, FALSE);
+    HMENU popup;
+    char text[16];
+    int d;
+
+    if (sys == NULL)
+        return NULL;
+    popup = CreatePopupMenu();
+    if (popup == NULL)
+        return NULL;
+    for (d = 0; d < NUM_DESKS; d++)
+    {
+        wsprintf(text, "Desktop &%d", d + 1);
+        AppendMenu(popup, MF_STRING, QD_MOVE_ID(d), text);
+    }
+    AppendMenu(sys, MF_SEPARATOR, 0, NULL);
+    AppendMenu(sys, MF_POPUP, (UINT)popup, "Move to &Desktop");
+    return popup;
+}
+
+/* Position of our submenu in the window's system menu, or -1. */
+static int MovePos(HMENU sys, HMENU popup)
+{
+    int i, n = GetMenuItemCount(sys);
+    for (i = 0; i < n; i++)
+        if (GetSubMenu(sys, i) == popup)
+            return i;
+    return -1;
+}
+
+static void UpdateMoveMenu(HWND h, HMENU popup, WORD *state, BOOL allowed)
+{
+    WORD now = (WORD)(g_current | (allowed ? 0x10 : 0));
+    HMENU sys;
+    int d, pos;
+
+    if (popup == NULL || now == *state || !IsWindow(h))
+        return;
+    sys = GetSystemMenu(h, FALSE);
+    pos = MovePos(sys, popup);
+    if (pos < 0)
+        return;
+    EnableMenuItem(sys, pos, MF_BYPOSITION | (allowed ? MF_ENABLED : MF_GRAYED));
+    for (d = 0; d < NUM_DESKS; d++)
+    {
+        CheckMenuItem(popup, QD_MOVE_ID(d), MF_BYCOMMAND |
+                      (d == g_current ? MF_CHECKED : MF_UNCHECKED));
+        EnableMenuItem(popup, QD_MOVE_ID(d), MF_BYCOMMAND |
+                       (d == g_current ? MF_GRAYED : MF_ENABLED));
+    }
+    *state = now;
+}
+
+static void RemoveMoveMenu(HWND h, HMENU popup)
+{
+    HMENU sys;
+    int pos;
+
+    if (popup == NULL || !IsWindow(h))
+        return;
+    sys = GetSystemMenu(h, FALSE);
+    pos = MovePos(sys, popup);
+    if (pos < 0)
+        return;
+    RemoveMenu(sys, pos, MF_BYPOSITION);
+    if (pos > 0 && (GetMenuState(sys, pos - 1, MF_BYPOSITION) & MF_SEPARATOR))
+        RemoveMenu(sys, pos - 1, MF_BYPOSITION);
+    DestroyMenu(popup);
+}
+
 static WINREC *AddRec(HWND h, int desk)
 {
     WINREC *r;
@@ -184,6 +267,8 @@ static WINREC *AddRec(HWND h, int desk)
     r->iconic = FALSE;
     r->wasIconic = IsIconic(h);
     r->born   = GetTickCount();
+    r->movePopup = AddMoveMenu(h);
+    r->menuState = 0xFFFF;
     return r;
 }
 
@@ -358,6 +443,14 @@ static void PmTrack(void)
 
     if (pm == NULL)
         return;
+    if (g_pmMenuWnd != pm)
+    {
+        g_pmPopup     = AddMoveMenu(pm);
+        g_pmMenuWnd   = pm;
+        g_pmMenuState = 0xFFFF;
+    }
+    /* Movable while it is open (D-117); not as an icon (D-118). */
+    UpdateMoveMenu(pm, g_pmPopup, &g_pmMenuState, !IsIconic(pm));
     if (!IsIconic(pm))
     {
         /* Open: restored by the user here, or still open on its desktop. */
@@ -559,6 +652,11 @@ static void ParkStrays(void)
         g_sysModalTick = GetTickCount();
     Sync();
     PmTrack();
+    for (i = 0; i < g_count; i++)
+        if (!g_win[i].parked)
+            UpdateMoveMenu(g_win[i].hwnd, g_win[i].movePopup, &g_win[i].menuState,
+                           !IsIconic(g_win[i].hwnd) &&
+                           GetWindow(g_win[i].hwnd, GW_OWNER) == NULL);
     for (i = 0; i < g_count; i++)
         if (g_win[i].desk != g_current && !g_win[i].parked)
         {
@@ -889,6 +987,105 @@ static void UnparkAll(void)
         Unpark(&g_win[i]);
 }
 
+/* Takes "Move to Desktop" out of every system menu (on exit). */
+static void RemoveAllMoveMenus(void)
+{
+    int i;
+    for (i = 0; i < g_count; i++)
+    {
+        RemoveMoveMenu(g_win[i].hwnd, g_win[i].movePopup);
+        g_win[i].movePopup = NULL;
+    }
+    RemoveMoveMenu(g_pmMenuWnd, g_pmPopup);
+    g_pmPopup = NULL;
+    g_pmMenuWnd = NULL;
+}
+
+/* ------------------------------------------------------------------ */
+/* Moving windows to another desktop (milestone 3)                     */
+
+/* Sends a window to another desktop (D-115 to D-118). The user stays on
+   the current desktop; the window gets the focus when they go there. */
+static void MoveToDesk(HWND h, int desk)
+{
+    HWND pm = PmWindow();
+    WINREC *r;
+    int i;
+
+    if (desk < 0 || desk >= NUM_DESKS || desk == g_current || !IsWindow(h))
+        return;
+    if (IsIconic(h) || GetWindow(h, GW_OWNER) != NULL)
+        return;                         /* minimized or a dialog: not movable */
+
+    QDSetSwitching(TRUE);
+    if (h == pm)
+    {
+        /* The destination becomes its desktop (D-117): it is minimized
+           here, like when the user leaves its desktop. */
+        HWND wins[MAX_WINDOWS];
+        int n = CoreWindows(g_current, wins, MAX_WINDOWS, CW_THUMBS);
+        g_pmZ = 0;
+        for (i = 0; i < n; i++)
+            if (wins[i] == pm)
+            {
+                g_pmZ = i;
+                break;
+            }
+        ShowWindow(pm, SW_SHOWMINNOACTIVE);
+        g_pmByUs = TRUE;
+        g_pmHome = desk;
+    }
+    else
+    {
+        Sync();
+        r = FindRec(h);
+        if (r == NULL)
+        {
+            QDSetSwitching(FALSE);
+            return;
+        }
+        /* The window and everything it owns (its dialogs) go together. */
+        for (i = 0; i < g_count; i++)
+            if (g_win[i].hwnd == h || RootOwner(g_win[i].hwnd) == h)
+            {
+                g_win[i].desk = desk;
+                Park(&g_win[i]);
+            }
+    }
+    g_focus[desk] = h;
+
+    /* The focus goes to the next window of this desktop, unless the user
+       is using the pager. */
+    if (GetActiveWindow() != g_hwndMain)
+        ActivateTopWindow();
+    QDSetSwitching(FALSE);
+    PagerRefresh();
+}
+
+/* A drag ended at pt (screen). Dropped on a pager cell: the window goes
+   back to where it was and, if the cell is another desktop, to that
+   desktop. Anywhere else it was a normal move. */
+static void OnDragEnd(POINT pt)
+{
+    HWND h;
+    RECT orig, rc;
+    int cell;
+
+    QDGetDragStart(&h, &orig);
+    if (h == NULL || !IsWindow(h))
+        return;
+    cell = PagerCellAtScreen(pt, h);
+    if (cell < 0)
+        return;
+    GetWindowRect(h, &rc);
+    if (rc.right - rc.left != orig.right - orig.left ||
+        rc.bottom - rc.top != orig.bottom - orig.top)
+        return;                         /* it was a resize */
+    SetWindowPos(h, NULL, orig.left, orig.top, 0, 0,
+                 SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    MoveToDesk(h, cell);
+}
+
 /* Start-up: windows left off screen by a previous QuadDesk that did not
    exit cleanly are brought back. The screen width cannot change without
    restarting Windows, so they are moved back by the same distance. If the
@@ -949,8 +1146,31 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
         return 0;
 
     case WM_TIMER:
+        /* A drag whose end the mouse hook did not see (a click on a title
+           bar without moving): end it here, so no "moving" state is left
+           behind. */
+        if (QDIsDragging() && !(GetAsyncKeyState(VK_LBUTTON) & 0x8000) &&
+            QDEndDrag())
+        {
+            POINT pt;
+            GetCursorPos(&pt);
+            OnDragEnd(pt);
+        }
         ParkStrays();
         PagerTick();
+        return 0;
+
+    case WM_QD_DRAGEND:
+    {
+        POINT pt;
+        pt.x = (int)(short)LOWORD(lParam);
+        pt.y = (int)(short)HIWORD(lParam);
+        OnDragEnd(pt);
+        return 0;
+    }
+
+    case WM_QD_MOVETO:
+        MoveToDesk((HWND)wParam, (int)lParam);
         return 0;
 
     case WM_QD_CHANGED:
@@ -1053,6 +1273,7 @@ LRESULT CALLBACK _export MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
     case WM_DESTROY:
         KillTimer(hwnd, SYNC_TIMER);
         QDRemove();
+        RemoveAllMoveMenus();
         UnparkAll();
         PmRestoreForExit();
         PagerDestroy();

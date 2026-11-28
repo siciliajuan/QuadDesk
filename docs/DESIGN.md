@@ -219,9 +219,29 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
     must not rely only on the mouse hook seeing the button-up (the move loop
     can swallow it). Clicking a title bar without moving starts a move loop
     too: the "moving" state must end as soon as the button is up. [validated]
+  - Only onto the open pager; the live icon is not a drop target.
+    [decided — D-114]
+  - Only mouse drags count: moving a window with the keyboard (Alt+Space,
+    Move) is a normal move. A drag that changes the window's size was a
+    resize and is ignored. [decided]
 - **Extended system menu** of every window: `Move to Desktop ▸` with
   `Desktop 1`…`Desktop 4` (the current one checked and greyed). Keyboard path:
   Alt+Space, then the mnemonic, then the number. [decided]
+- **After moving a window** to another desktop, the user stays on the
+  current desktop: the window disappears from the screen and appears in
+  the destination thumbnail; the focus goes to the next window of the
+  current desktop. When the user goes to the destination desktop, the
+  moved window gets the focus. [decided — D-115]
+- **Dialogs and other owned windows cannot be moved** (they always go with
+  their application, D-020): dropped on a cell they go back to their place
+  and nothing else happens; in their system menu `Move to Desktop` is
+  greyed. [decided — D-116]
+- **Program Manager can be moved**: the destination becomes its desktop
+  (open there, an icon on the others), as when it is restored on another
+  desktop (D-054). [decided — D-117]
+- **Minimized windows** are on every desktop (D-096), so moving them has no
+  effect: `Move to Desktop` is greyed and dropping an icon on a cell does
+  nothing. [decided — D-118]
 - "Visible on all desktops" is **not** in v1 (see section 13). [decided]
 
 ## 6. Windows from other desktops
@@ -413,6 +433,20 @@ proven on real hardware · **[proposed]** suggested, waiting for approval ·
   before v1.0 for shortcuts and cell clicks (D-101, D-112): an active pager
   stays active and in front. After a double click in the list, the chosen
   window gets the focus, as decided.
+- **Ending a task of another desktop from the Task List** (D-120).
+  "End Task" on a window of another desktop takes the user to that desktop;
+  it should not. Probably the Task List activates the window before closing
+  it, and QuadDesk follows the activation as for "Switch To". To
+  investigate: telling "End Task" from "Switch To".
+- **Cascade or Tile with Program Manager open on another desktop**
+  (D-120). From the Task List, on a desktop other than Program Manager's
+  while its window is open there: Program Manager (an icon here) is not
+  arranged and stays on its desktop. Expected behaviour to be decided when
+  this is picked up.
+- **Program Manager still drawn in front, and its position not always
+  remembered** (D-120). Part of the Program Manager item above (D-090): in
+  some corner cases it is drawn above other windows and does not come
+  back to its remembered position; it works well in general.
 
 These are accepted for v1.0 and must not be forgotten: each one has to be
 prepared properly (scenario, expected behaviour, design) before coding.
@@ -469,7 +503,7 @@ here first. [decided — D-063 to D-067]
   bar; system-modal boxes do not move the user; popup menus never managed
   (D-091 to D-107, adopted in D-112).
 
-**3 — Moving windows (v0.4)**
+**3 — Moving windows (v0.4)** — done (tests/HITO3.TXT)
 - Drag a real window by its title bar onto a pager cell (section 5).
 - Extended system menu `Move to Desktop ▸` (section 5).
 - Fix: a click on a title bar without moving must not leave a "moving"
@@ -500,6 +534,6 @@ issues to revisit").
 | 1 — Core (v0.1) | **Done.** All tests (tests/HITO1.TXT) passed on the real 486 on 2026-11-24. Temporary UI: an icon titled `QuadDesk [N]`; messages in English only. |
 | 2 — Pager (v0.2) | **Done.** All tests (tests/HITO2.TXT) passed on the real 486 on 2026-11-26. UI texts in English only. |
 | 2b — Pager improvements (v0.3) | **Done.** Full QA (tests/QA.TXT) passed on the real 486 on 2026-11-27, except the known issues kept for after v1.0. |
-| 3 — Moving windows (v0.4) | Not started (technique validated with VDTEST) |
+| 3 — Moving windows (v0.4) | **Done.** All tests (tests/HITO3.TXT) passed on the real 486 on 2026-11-28; three new issues kept for after v1.0 (D-120). |
 | 4 — Preferences, CPL, languages (v0.5) | Not started |
 | 5 — Help, readme, setup (v0.6) | Not started |

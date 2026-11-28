@@ -794,6 +794,36 @@ void PagerMouseMove(int x, int y)
     }
 }
 
+/* The cell under a screen point, if the pager is open and visible at that
+   point; -1 otherwise. Drop target for dragged windows (D-114).
+   When the drop is handled, Windows has already moved the dragged window
+   there, on top of the pager: that window, and the ones it owns, do not
+   count as covering it. */
+int PagerCellAtScreen(POINT pt, HWND dragged)
+{
+    RECT rc;
+    HWND w;
+
+    if (!IsWindowVisible(g_hwndMain) || IsIconic(g_hwndMain))
+        return -1;
+    GetWindowRect(g_hwndMain, &rc);
+    if (!PtInRect(&rc, pt))
+        return -1;
+    for (w = GetWindow(GetDesktopWindow(), GW_CHILD);
+         w != NULL && w != g_hwndMain;
+         w = GetWindow(w, GW_HWNDNEXT))
+    {
+        if (w == dragged || GetWindow(w, GW_OWNER) == dragged ||
+            !IsWindowVisible(w))
+            continue;
+        GetWindowRect(w, &rc);
+        if (PtInRect(&rc, pt))
+            return -1;                  /* another window covers the pager */
+    }
+    ScreenToClient(g_hwndMain, &pt);
+    return CellAt(pt.x, pt.y);
+}
+
 /* Clicking a cell activates the pager (Windows does it on the click) and
    switches desktop; the pager stays active and in front (D-095, D-101). */
 void PagerClick(int x, int y)

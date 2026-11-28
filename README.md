@@ -3,7 +3,7 @@
 A virtual desktop manager for **Windows 3.1**, designed for 640×480 and for
 retro computing enthusiasts.
 
-> **Status:** in development. v0.3 (pager improvements) released; next, v0.4 (moving windows).
+> **Status:** in development. v0.4 (moving windows) released; next, v0.5 (preferences, Control Panel and languages).
 
 ## What it does
 
@@ -24,6 +24,9 @@ The pager window shows the four desktops to scale, with the icon of every
 window, the list of windows of the active desktop and the list of minimized
 applications. Click a cell to go to that desktop. **Ctrl+Alt+Shift+Space**
 shows or hides the pager; minimized, it becomes a live icon of the 2×2 grid.
+
+To send a window to another desktop, drag it by its title bar onto that
+desktop's cell in the pager, or use **Move to Desktop** in its system menu.
 
 Minimized applications are visible on every desktop: restore one and it
 opens on the desktop you are on. Program Manager is always at hand: open on

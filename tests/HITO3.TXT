@@ -1,0 +1,105 @@
+QUADDESK - PRUEBA DEL HITO 3 (MOVER VENTANAS, v0.4)
+====================================================
+
+Novedad: mandar ventanas a otro escritorio arrastrándolas al pager o con
+el menú de sistema ("Move to Desktop"). Sustituye QUADDESK.EXE y
+QDHOOK.DLL (la DLL ha cambiado). QDQA.EXE es la misma herramienta de
+pruebas de siempre.
+
+Escritorios:   1  2
+               3  4
+
+
+PRUEBA 1 - ARRASTRAR A UNA CELDA
+--------------------------------
+  1. En el escritorio 1, abre el Bloc de notas. Arrástralo por su barra
+     de título y suéltalo sobre la celda 2 del pager.
+     - Durante el arrastre no se resalta nada (es lo esperado).
+     - Al soltar, el Bloc de notas desaparece de la pantalla y aparece en
+       la miniatura de la celda 2, en la misma posición que tenía.
+     - Sigues en el escritorio 1; el foco pasa a otra ventana del 1.
+  2. Vete al escritorio 2.
+     - El Bloc de notas está allí, en su sitio y ACTIVO.
+  3. Arrástralo y suéltalo sobre la celda 2 (su propio escritorio).
+     - Vuelve a donde estaba; no pasa nada más.
+  4. Arrástralo y suéltalo en cualquier sitio fuera del pager.
+     - Movimiento normal de Windows: se queda donde lo sueltas.
+  5. Repite 1 con una ventana MAXIMIZADA (QDQA > Ventana maximizada; se
+     arrastra igual, por la barra de título).
+     - Llega al otro escritorio maximizada.
+
+
+PRUEBA 2 - CASOS QUE NO SE MUEVEN
+---------------------------------
+  1. Diálogo: QDQA > Diálogo no modal con propietaria. Arrastra el
+     diálogo a otra celda.
+     - Vuelve a su sitio; no cambia de escritorio.
+  2. Icono: minimiza una ventana y arrastra su icono a otra celda.
+     - Vuelve a su sitio; no pasa nada (los iconos están en todos los
+       escritorios).
+  3. Con el pager MINIMIZADO, arrastra una ventana sobre el icono vivo.
+     - Movimiento normal; no cambia de escritorio.
+  4. Cambia el tamaño de una ventana arrastrando su borde y suelta el
+     ratón encima de una celda.
+     - Es un cambio de tamaño normal; no cambia de escritorio.
+  5. Mueve una ventana con el teclado (Alt+Espacio, Mover, flechas,
+     Intro) dejándola encima del pager.
+     - Movimiento normal; no cambia de escritorio.
+
+
+PRUEBA 3 - CLIC EN LA BARRA DE TÍTULO SIN MOVER
+-----------------------------------------------
+  1. Haz clic (pulsar y soltar sin mover) en la barra de título de
+     varias ventanas, varias veces.
+  2. Después, arrastra una de ellas a otra celda.
+     - Funciona a la primera: no queda ningún estado de "moviendo"
+       colgado de los clics anteriores.
+
+
+PRUEBA 4 - MENÚ DE SISTEMA "MOVE TO DESKTOP"
+--------------------------------------------
+  1. Abre el menú de sistema del Bloc de notas (guion de la esquina).
+     - Al final, tras una línea, "Move to Desktop" con flecha.
+     - Dentro: Desktop 1 a Desktop 4, con el actual marcado y en gris.
+  2. Elige "Desktop 3".
+     - El Bloc de notas se va al 3 (igual que al arrastrarlo); sigues
+       donde estabas.
+  3. Con el teclado: Alt+Espacio, D, 4.
+     - Se va al 4.
+  4. En un diálogo (QDQA > Diálogo no modal con propietaria) y en una
+     ventana minimizada (menú de su icono).
+     - "Move to Desktop" aparece en gris.
+  5. Cambia de escritorio y abre el menú de otra ventana.
+     - El escritorio marcado es el nuevo actual.
+  6. Cierra QuadDesk y abre el menú de sistema de varias ventanas.
+     - "Move to Desktop" ya no está; el resto del menú, intacto.
+
+
+PRUEBA 5 - ADMINISTRADOR DE PROGRAMAS
+-------------------------------------
+  1. Con el Administrador de programas abierto en el 1, arrástralo a la
+     celda 3 (o Move to Desktop > Desktop 3).
+     - En el 1 pasa a ser un icono; en la celda 3 se dibuja su ventana.
+  2. Vete al 3.
+     - Se abre allí, como estaba.
+  3. Minimízalo tú y abre el menú de su icono.
+     - "Move to Desktop" en gris.
+
+
+PRUEBA 6 - CON VENTANAS DEPENDIENTES
+------------------------------------
+  1. QDQA > Diálogo no modal con propietaria (queda abierto). Arrastra
+     QDQA (la ventana principal) a la celda 2.
+     - QDQA y su diálogo se van juntos al 2. La celda 2 NO parpadea.
+  2. QDQA > Emergente con propietaria; manda QDQA al 4 con el menú.
+     - La emergente se va con QDQA.
+
+
+PRUEBA 7 - REGRESIÓN
+--------------------
+  Repite QA.TXT, al menos las secciones 1, 3, 4, 7, 8 y 9.
+
+
+QUÉ ENVIARME
+------------
+  Para cada prueba: OK o, si falla, qué has visto exactamente.
